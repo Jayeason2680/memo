@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meeting Memo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Memo">
+<meta name="theme-color" content="#0C0C0D">
+<style>
+  * { -webkit-font-smoothing: antialiased; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: #0C0C0D; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; overscroll-behavior: none; }
+  a { color: #E8896A; text-decoration: none; }
+  a:hover { color: #F0A588; }
+  input { font-family: inherit; }
+  @keyframes wv { 0% { transform: scaleY(0.35); } 100% { transform: scaleY(1); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes reddot { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+  @keyframes appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-height:100dvh; background:#0C0C0D; display:flex; justify-content:center;">
+  <div style="width:100%; max-width:460px; min-height:100dvh; display:flex; flex-direction:column; color:#fff; position:relative;">
+
+    <!-- HOME -->
+    <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1; display:flex; flex-direction:column; padding:max(24px,env(safe-area-inset-top)) 22px max(28px,env(safe-area-inset-bottom));">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding-top:20px;">
+          <span style="font-size:28px; font-weight:700; letter-spacing:-0.02em;">Memos</span>
+          <button onClick="{{ openSettings }}" style="width:42px; height:42px; border:none; border-radius:50%; background:#1E1E20; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#c8c8ce;">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="8" r="3" fill="#0C0C0D" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="16" r="3" fill="#0C0C0D" stroke="currentColor" stroke-width="1.8"/></svg>
+          </button>
+        </div>
+
+        <div style="margin-top:28px; font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70;">Recent</div>
+
+        <sc-if value="{{ hasRecents }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ recents }}" as="r" hint-placeholder-count="1">
+              <div style="background:#1A1A1C; border-radius:16px; padding:15px 16px;">
+                <div style="font-size:16px; font-weight:650;">{{ r.title }}</div>
+                <div style="font-size:13px; color:#7a7a80; margin-top:3px;">{{ r.meta }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ noRecents }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:12px; background:#141416; border:1px dashed #2a2a2c; border-radius:16px; padding:22px 16px; text-align:center;">
+            <div style="font-size:14px; color:#7a7a80; line-height:1.5;">No memos yet.<br>Tap START to record your first meeting.</div>
+          </div>
+        </sc-if>
+
+        <div style="flex:1;"></div>
+
+        <button onClick="{{ statusClick }}" style="align-self:center; margin-bottom:16px; border:none; cursor:pointer; background:{{ pillBg }}; color:{{ pillFg }}; font-size:13px; font-weight:600; padding:8px 15px; border-radius:999px; display:flex; align-items:center; gap:8px;">
+          <span style="width:8px; height:8px; border-radius:50%; background:{{ pillDot }};"></span>{{ pillText }}
+        </button>
+
+        <button onClick="{{ onStart }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; padding:20px; border-radius:22px; display:flex; align-items:center; justify-content:center; gap:13px; box-shadow:0 14px 34px rgba(217,119,87,0.38);">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span style="font-size:21px; font-weight:700; letter-spacing:0.1em;">START</span>
+        </button>
+      </div>
+    </sc-if>
+
+    <!-- RECORDING -->
+    <sc-if value="{{ isRec }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; padding:max(24px,env(safe-area-inset-top)) 22px max(28px,env(safe-area-inset-bottom));">
+        <div style="display:flex; align-items:center; justify-content:center; gap:9px; padding-top:24px;">
+          <span style="width:9px; height:9px; border-radius:50%; background:#E5484D; animation:reddot 1.4s ease-in-out infinite;"></span>
+          <span style="font-size:15px; font-weight:600; color:#8a8a90;">Recording</span>
+        </div>
+        <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:32px;">
+          <div style="font-size:74px; font-weight:600; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">{{ time }}</div>
+          {{ wave }}
+          <div style="display:flex; align-items:center; gap:8px; background:#1A1A1C; padding:9px 16px; border-radius:999px; font-size:13.5px; color:#b0b0b6; font-weight:600;">EN · 中文 · auto-detect</div>
+        </div>
+        <button onClick="{{ onStop }}" style="width:100%; border:none; cursor:pointer; background:#1E1E20; color:#fff; padding:20px; border-radius:22px; display:flex; align-items:center; justify-content:center; gap:13px; border:1px solid #2c2c2e;">
+          <span style="width:22px; height:22px; border-radius:6px; background:#E5484D;"></span>
+          <span style="font-size:20px; font-weight:700;">Stop &amp; save</span>
+        </button>
+      </div>
+    </sc-if>
+
+    <!-- PROCESSING -->
+    <sc-if value="{{ isProc }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px; padding:34px;">
+        <div style="width:58px; height:58px; border-radius:50%; border:4px solid #2c2c2e; border-top-color:#D97757; animation:spin 0.85s linear infinite;"></div>
+        <div style="text-align:center;">
+          <div style="font-size:21px; font-weight:650;">{{ status }}</div>
+          <div style="font-size:14px; color:#7a7a80; line-height:1.6; margin-top:9px;">This can take a moment for long<br>meetings — keep the app open.</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- SAVED -->
+    <sc-if value="{{ isSaved }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; overflow:auto; display:flex; flex-direction:column; padding:max(24px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));">
+        <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin:22px 0 18px; animation:appear 0.4s ease;">
+          <div style="width:58px; height:58px; border-radius:50%; background:{{ checkBg }}; display:flex; align-items:center; justify-content:center;">
+            {{ checkIcon }}
+          </div>
+          <div style="font-size:20px; font-weight:650;">{{ savedTitle }}</div>
+          <div style="font-size:12.5px; color:#7a7a80; font-family:ui-monospace,Menlo,monospace; text-align:center; word-break:break-all; padding:0 20px;">{{ fileName }}</div>
+        </div>
+
+        <div style="background:#1A1A1C; border-radius:20px; padding:18px;">
+          <div style="font-size:18px; font-weight:700; line-height:1.3;">{{ title }}</div>
+          <div style="font-size:13px; color:#7a7a80; margin-top:4px;">{{ meta }}</div>
+
+          <div style="display:inline-flex; margin-top:14px; background:#0C0C0D; border-radius:9px; padding:3px;">
+            <button onClick="{{ setLangEn }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:6px 15px; border-radius:7px; background:{{ enBg }}; color:{{ enFg }};">English</button>
+            <button onClick="{{ setLangZh }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:6px 15px; border-radius:7px; background:{{ zhBg }}; color:{{ zhFg }};">中文</button>
+          </div>
+
+          <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Summary</div>
+          <div style="font-size:14.5px; line-height:1.65; color:#d0d0d6; margin-top:6px;">{{ summary }}</div>
+
+          <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Key points</div>
+          <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ points }}" as="pt" hint-placeholder-count="2">
+              <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#d0d0d6;"><span style="color:#E8896A;">•</span><span>{{ pt }}</span></div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Action items</div>
+          <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+            <sc-for list="{{ actions }}" as="ac" hint-placeholder-count="2">
+              <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#d0d0d6;"><span style="width:16px; height:16px; margin-top:1px; border:1.6px solid #3a3a3e; border-radius:5px; flex-shrink:0;"></span><span>{{ ac }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="flex:1; min-height:18px;"></div>
+        <button onClick="{{ saveFile }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:17px; font-weight:700; padding:17px; border-radius:16px; display:flex; align-items:center; justify-content:center; gap:10px; box-shadow:0 8px 22px rgba(217,119,87,0.32);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Save .txt to iCloud
+        </button>
+        <button onClick="{{ copyMemo }}" style="width:100%; margin-top:10px; border:none; cursor:pointer; background:#1E1E20; color:#fff; font-size:16px; font-weight:600; padding:15px; border-radius:15px; display:flex; align-items:center; justify-content:center; gap:9px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.9"/><path d="M16 5.5A2.5 2.5 0 0013.5 4H6a2 2 0 00-2 2v9.5A2.5 2.5 0 006.5 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+          {{ copyLabel }}
+        </button>
+        <button onClick="{{ onNew }}" style="width:100%; margin-top:10px; border:none; cursor:pointer; background:transparent; color:#8a8a90; font-size:16px; font-weight:600; padding:10px;">New recording</button>
+      </div>
+    </sc-if>
+
+    <!-- ERROR -->
+    <sc-if value="{{ isError }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; padding:34px; text-align:center;">
+        <div style="width:56px; height:56px; border-radius:50%; background:#3A1618; display:flex; align-items:center; justify-content:center;">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><line x1="12" y1="7" x2="12" y2="14" stroke="#E5484D" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="18" r="1.4" fill="#E5484D"/></svg>
+        </div>
+        <div>
+          <div style="font-size:19px; font-weight:650;">Something went wrong</div>
+          <div style="font-size:14px; color:#9a9a9f; line-height:1.6; margin-top:8px; max-width:300px;">{{ error }}</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px;">
+          <button onClick="{{ onNew }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:16px; font-weight:650; padding:15px; border-radius:15px;">Back to start</button>
+          <button onClick="{{ openSettings }}" style="width:100%; border:none; cursor:pointer; background:#1E1E20; color:#fff; font-size:16px; font-weight:600; padding:15px; border-radius:15px;">Open Settings</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- SETTINGS -->
+    <sc-if value="{{ isSet }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1; overflow:auto; display:flex; flex-direction:column; padding:max(24px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom));">
+        <div style="display:flex; align-items:center; gap:6px; padding-top:16px; margin-bottom:14px;">
+          <button onClick="{{ closeSettings }}" style="border:none; background:none; cursor:pointer; color:#E8896A; font-size:16px; font-weight:600; display:flex; align-items:center; gap:2px; padding:0;">
+            <svg width="11" height="18" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#E8896A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+          </button>
+        </div>
+        <div style="font-size:28px; font-weight:700; letter-spacing:-0.02em; margin-bottom:18px;">Settings</div>
+
+        <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:0 4px 8px;">OpenAI API key</div>
+        <div style="background:#1A1A1C; border-radius:16px; padding:14px 16px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="{{ keyInputType }}" value="{{ apiKey }}" onInput="{{ setKey }}" placeholder="sk-..." style="flex:1; min-width:0; background:transparent; border:none; outline:none; color:#fff; font-size:15px; font-family:ui-monospace,Menlo,monospace;">
+            <button onClick="{{ toggleShow }}" style="border:none; background:#2a2a2c; color:#b0b0b6; font-size:12px; font-weight:600; padding:6px 10px; border-radius:8px; cursor:pointer;">{{ showLabel }}</button>
+          </div>
+        </div>
+        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">Stored only on this device. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>. Leave empty to preview in demo mode.</div>
+
+        <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Output</div>
+        <div style="background:#1A1A1C; border-radius:16px; overflow:hidden;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border-bottom:0.5px solid #2a2a2c;"><span style="font-size:16px;">Languages</span><span style="font-size:15px; color:#7a7a80;">English + 中文</span></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 16px; border-bottom:0.5px solid #2a2a2c;"><span style="font-size:16px;">Format</span><span style="font-size:15px; color:#7a7a80;">Memo (summary · points · actions)</span></div>
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:15px 16px;"><span style="font-size:16px;">Save as</span><span style="font-size:15px; color:#7a7a80;">.txt → iCloud Drive</span></div>
+        </div>
+
+        <div style="font-size:12.5px; color:#6a6a70; line-height:1.6; margin-top:14px; padding:0 4px;">Tip: on iPhone, open this page in Safari, tap Share → <b style="color:#9a9a9f;">Add to Home Screen</b> to launch it full-screen like an app. Saving hands the .txt to the iOS share sheet — choose <b style="color:#9a9a9f;">Save to Files → iCloud Drive</b>.</div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 460, &quot;height&quot;: 900}}">
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+const DEMO = {
+  title: 'Q3 Marketing Sync',
+  summary_en: 'The team aligned on the Q3 campaign timeline, shifted budget toward paid social, and agreed to launch the landing page by month-end. QA access remains the main open risk.',
+  summary_zh: '团队确定了第三季度营销活动的时间表，将预算向付费社交媒体倾斜，并同意在月底前上线落地页。QA 权限仍是主要的未决风险。',
+  key_points_en: ['Paid social budget increased 20%', 'Landing page copy due Jul 18', 'Launch target: end of month'],
+  key_points_zh: ['付费社交预算增加 20%', '落地页文案 7 月 18 日截止', '上线目标：月底'],
+  action_items_en: ['Wei — finalize the creative brief (Fri)', 'Alex — book the media buy'],
+  action_items_zh: ['伟 — 完成创意简报（周五）', 'Alex — 预订媒体投放'],
+};
+
+class Component extends DCLogic {
+  state = {
+    screen: 'home', sec: 0, status: '', error: null,
+    memo: null, memoLangEn: true, fileName: '', title: '', meta: '', savedCloud: false,
+    apiKey: '', showKey: false, recents: [], copied: false,
+  };
+
+  async copyMemo() {
+    const txt = this._memoTxt || '';
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(txt);
+      else {
+        const ta = document.createElement('textarea');
+        ta.value = txt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+      }
+      this.setState({ copied: true });
+      clearTimeout(this._copyT);
+      this._copyT = setTimeout(() => this.setState({ copied: false }), 1800);
+    } catch (e) {}
+  }
+
+  componentDidMount() {
+    let key = '', recents = [];
+    try { key = localStorage.getItem('mm_key') || ''; } catch (e) {}
+    try { recents = JSON.parse(localStorage.getItem('mm_recents') || '[]'); } catch (e) {}
+    this.setState({ apiKey: key, recents });
+  }
+  componentWillUnmount() {
+    clearInterval(this._timer);
+    this.stopStream();
+  }
+
+  fmt(s) { const m = Math.floor(s / 60), x = s % 60; return String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0'); }
+  stopStream() { if (this._stream) { this._stream.getTracks().forEach(t => t.stop()); this._stream = null; } }
+  pickMime() {
+    const c = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/aac'];
+    if (window.MediaRecorder) for (const m of c) { try { if (MediaRecorder.isTypeSupported(m)) return m; } catch (e) {} }
+    return '';
+  }
+  extOf(m) { return (m || '').includes('mp4') ? 'mp4' : (m || '').includes('aac') ? 'm4a' : 'webm'; }
+
+  async onStart() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.setState({ screen: 'error', error: 'Microphone recording is not available in this browser. On iPhone, open this page in Safari over https.' });
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      this._stream = stream;
+      const mime = this.pickMime(); this._mime = mime; this._chunks = [];
+      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      rec.ondataavailable = e => { if (e.data && e.data.size) this._chunks.push(e.data); };
+      rec.onstop = () => {
+        this._recSec = this.state.sec;
+        const blob = new Blob(this._chunks, { type: this._mime || 'audio/webm' });
+        this.stopStream();
+        this.process(blob, this.extOf(this._mime));
+      };
+      this._rec = rec; rec.start();
+      this.setState({ screen: 'recording', sec: 0, error: null });
+      clearInterval(this._timer);
+      this._timer = setInterval(() => this.setState(p => ({ sec: p.sec + 1 })), 1000);
+    } catch (e) {
+      this.setState({ screen: 'error', error: 'Microphone permission was denied. Allow microphone access for this site and try again.' });
+    }
+  }
+
+  onStop() {
+    clearInterval(this._timer);
+    if (this._rec && this._rec.state !== 'inactive') this._rec.stop();
+    else this.process(new Blob(this._chunks || [], { type: this._mime || 'audio/webm' }), this.extOf(this._mime));
+  }
+
+  async transcribe(blob, ext) {
+    const fd = new FormData();
+    fd.append('file', new File([blob], 'meeting.' + ext, { type: blob.type || 'audio/webm' }));
+    fd.append('model', 'gpt-4o-transcribe');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + this.state.apiKey }, body: fd,
+    });
+    if (!res.ok) throw new Error('Transcription failed (' + res.status + '). ' + (await res.text()).slice(0, 160));
+    return (await res.json()).text || '';
+  }
+
+  async summarize(transcript) {
+    const sys = 'You are an executive assistant. From the meeting transcript, write a concise professional memo. Reply ONLY with a JSON object with these exact keys: "title" (short meeting title, string), "summary_en" (2-4 sentence English summary), "summary_zh" (same summary in Simplified Chinese), "key_points_en" (array of short English strings), "key_points_zh" (same in Simplified Chinese), "action_items_en" (array of "Owner — task" English strings), "action_items_zh" (same in Simplified Chinese). Keep it tight and business-appropriate.';
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this.state.apiKey },
+      body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.3, response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: transcript }] }),
+    });
+    if (!res.ok) throw new Error('Summary failed (' + res.status + '). ' + (await res.text()).slice(0, 160));
+    return JSON.parse((await res.json()).choices[0].message.content);
+  }
+
+  buildTxt(m, dateStr, durStr) {
+    const L = x => (x || []).map(i => '  • ' + i).join('\n');
+    return [
+      'MEETING MEMO', m.title, '',
+      'Date: ' + dateStr + '    Duration: ' + durStr, '',
+      '── SUMMARY ──', m.summary_en, '',
+      '── 摘要 ──', m.summary_zh, '',
+      '── KEY POINTS ──', L(m.key_points_en), '',
+      '── 要点 ──', L(m.key_points_zh), '',
+      '── ACTION ITEMS ──', L(m.action_items_en), '',
+      '── 待办事项 ──', L(m.action_items_zh), '', '',
+      'Transcribed & summarized with OpenAI · Meeting Memo',
+    ].join('\n');
+  }
+
+  async process(blob, ext) {
+    try {
+      let memo;
+      const useApi = !!this.state.apiKey;
+      this.setState({ screen: 'processing', status: 'Transcribing your meeting…', error: null });
+      if (useApi) {
+        const transcript = await this.transcribe(blob, ext);
+        this.setState({ status: 'Writing your memo…' });
+        memo = await this.summarize(transcript);
+      } else {
+        await wait(1600);
+        this.setState({ status: 'Writing your memo…' });
+        await wait(1600);
+        memo = DEMO;
+      }
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const dateStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+      const durStr = this.fmt(this._recSec || 0);
+      const meta = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + durStr;
+      const slug = (memo.title || 'Memo').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const fileName = slug + '_' + dateStr + '_' + pad(now.getHours()) + pad(now.getMinutes()) + '.txt';
+      const memoTxt = this.buildTxt(memo, dateStr, durStr);
+
+      const recents = [{ title: memo.title, meta }, ...this.state.recents].slice(0, 4);
+      try { localStorage.setItem('mm_recents', JSON.stringify(recents)); } catch (e) {}
+
+      this._memoTxt = memoTxt;
+      this.setState({ screen: 'saved', memo, memoLangEn: true, title: memo.title, meta, fileName, savedCloud: false, copied: false, recents });
+    } catch (err) {
+      this.setState({ screen: 'error', error: (err && err.message) || 'Unexpected error.' });
+    }
+  }
+
+  async saveFile() {
+    const name = this.state.fileName;
+    const blob = new Blob([this._memoTxt || ''], { type: 'text/plain' });
+    try {
+      const file = new File([blob], name, { type: 'text/plain' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: name });
+        this.setState({ savedCloud: true });
+        return;
+      }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    this.setState({ savedCloud: true });
+  }
+
+  setKey(e) { const v = e.target.value; this.setState({ apiKey: v }); try { localStorage.setItem('mm_key', v); } catch (err) {} }
+
+  renderVals() {
+    const s = this.state, m = s.memo, en = s.memoLangEn;
+    const hasKey = !!(s.apiKey && s.apiKey.trim());
+    const check = c => React.createElement('svg', { width: 30, height: 30, viewBox: '0 0 24 24', fill: 'none' },
+      React.createElement('path', { d: 'M5 13l4 4L19 7', stroke: c, strokeWidth: 2.6, strokeLinecap: 'round', strokeLinejoin: 'round' }));
+    const bars = Array.from({ length: 34 }).map((_, i) => {
+      const h = 22 + ((i * 41) % 60), dur = 620 + ((i * 53) % 520);
+      return React.createElement('div', { key: i, style: { width: 3, borderRadius: 3, background: '#E8896A', height: h + '%', transformOrigin: 'center', animation: `wv ${dur}ms ease-in-out ${(i * 47) % 400}ms infinite alternate` } });
+    });
+    return {
+      isHome: s.screen === 'home', isRec: s.screen === 'recording', isProc: s.screen === 'processing',
+      isSaved: s.screen === 'saved', isError: s.screen === 'error', isSet: s.screen === 'settings',
+      time: this.fmt(s.sec), status: s.status, error: s.error,
+      wave: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 3, height: 62, width: '86%' } }, bars),
+      recents: s.recents, hasRecents: s.recents.length > 0, noRecents: s.recents.length === 0,
+      title: s.title, meta: s.meta, fileName: s.fileName,
+      savedTitle: s.savedCloud ? 'Saved to iCloud' : 'Memo ready',
+      checkBg: s.savedCloud ? '#12301E' : '#241A12',
+      checkIcon: check(s.savedCloud ? '#3BD97B' : '#E8896A'),
+      summary: m ? (en ? m.summary_en : m.summary_zh) : '',
+      points: m ? (en ? m.key_points_en : m.key_points_zh) : [],
+      actions: m ? (en ? m.action_items_en : m.action_items_zh) : [],
+      enBg: en ? '#2E2E30' : 'transparent', enFg: en ? '#fff' : '#8a8a90',
+      zhBg: !en ? '#2E2E30' : 'transparent', zhFg: !en ? '#fff' : '#8a8a90',
+      apiKey: s.apiKey, keyInputType: s.showKey ? 'text' : 'password', showLabel: s.showKey ? 'Hide' : 'Show',
+      pillBg: hasKey ? '#12301E' : '#2A2012', pillFg: hasKey ? '#6FE39B' : '#E8A86A',
+      pillDot: hasKey ? '#3BD97B' : '#E8A86A', pillText: hasKey ? 'Connected to OpenAI' : 'Demo mode · tap to add API key',
+      onStart: () => this.onStart(), onStop: () => this.onStop(), onNew: () => this.setState({ screen: 'home', sec: 0, error: null }),
+      openSettings: () => this.setState({ screen: 'settings' }), closeSettings: () => this.setState({ screen: 'home' }),
+      statusClick: () => this.setState({ screen: 'settings' }),
+      setLangEn: () => this.setState({ memoLangEn: true }), setLangZh: () => this.setState({ memoLangEn: false }),
+      saveFile: () => this.saveFile(), setKey: (e) => this.setKey(e), toggleShow: () => this.setState(p => ({ showKey: !p.showKey })),
+      copyMemo: () => this.copyMemo(), copyLabel: s.copied ? 'Copied ✓' : 'Copy memo text',
+    };
+  }
+}
+</script>
+</body>
+</html>
