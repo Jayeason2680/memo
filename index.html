@@ -46,7 +46,7 @@
         <sc-if value="{{ hasRecents }}" hint-placeholder-val="{{ false }}">
           <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
             <sc-for list="{{ recents }}" as="r" hint-placeholder-count="1">
-              <div style="background:#1A1A1C; border-radius:16px; padding:15px 16px;">
+              <div onClick="{{ r.open }}" style="background:#1A1A1C; border-radius:16px; padding:15px 16px; cursor:pointer;">
                 <div style="font-size:16px; font-weight:650;">{{ r.title }}</div>
                 <div style="font-size:13px; color:#7a7a80; margin-top:3px;">{{ r.meta }}</div>
               </div>
@@ -69,6 +69,13 @@
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           <span style="font-size:21px; font-weight:700; letter-spacing:0.1em;">START</span>
         </button>
+
+        <input id="mm-file-input" type="file" accept="audio/*" style="display:none;" onChange="{{ onImportFile }}">
+        <button onClick="{{ triggerImport }}" style="align-self:center; margin-top:14px; border:none; cursor:pointer; background:transparent; color:#9a9a9f; font-size:14px; font-weight:600; padding:6px 10px; display:flex; align-items:center; gap:7px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15V4m0 0L8 8m4-4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Import a recording
+        </button>
+        <div style="font-size:11.5px; color:#5a5a60; text-align:center; margin-top:4px; line-height:1.4; padding:0 12px;">For meetings you can't lose: record in Voice Memos (works with the screen locked), then import it here.</div>
       </div>
     </sc-if>
 
@@ -164,7 +171,10 @@
           <div style="font-size:14px; color:#9a9a9f; line-height:1.6; margin-top:8px; max-width:300px;">{{ error }}</div>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:300px;">
-          <button onClick="{{ onNew }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:16px; font-weight:650; padding:15px; border-radius:15px;">Back to start</button>
+          <sc-if value="{{ canRetrySummary }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ retrySummary }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:16px; font-weight:650; padding:15px; border-radius:15px;">Retry summary</button>
+          </sc-if>
+          <button onClick="{{ onNew }}" style="width:100%; border:none; cursor:pointer; background:{{ backStartBg }}; color:#fff; font-size:16px; font-weight:650; padding:15px; border-radius:15px;">Back to start</button>
           <button onClick="{{ openSettings }}" style="width:100%; border:none; cursor:pointer; background:#1E1E20; color:#fff; font-size:16px; font-weight:600; padding:15px; border-radius:15px;">Open Settings</button>
         </div>
       </div>
@@ -188,6 +198,12 @@
           </div>
         </div>
         <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">Stored only on this device. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>. Leave empty to preview in demo mode.</div>
+
+        <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Vocabulary hints</div>
+        <div style="background:#1A1A1C; border-radius:16px; padding:14px 16px;">
+          <textarea value="{{ vocabHint }}" onInput="{{ setVocab }}" placeholder="Attendee names, company, product terms…" rows="3" style="width:100%; background:transparent; border:none; outline:none; color:#fff; font-size:14px; font-family:inherit; line-height:1.5; resize:vertical;"></textarea>
+        </div>
+        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">Optional, e.g. "Attendees: Jayson, Wei, Alex. Client: Acme Corp." Currently not applied — the speaker-diarized transcription model doesn't support vocabulary hints yet.</div>
 
         <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Output</div>
         <div style="background:#1A1A1C; border-radius:16px; overflow:hidden;">
@@ -219,8 +235,15 @@ class Component extends DCLogic {
   state = {
     screen: 'home', sec: 0, status: '', error: null,
     memo: null, memoLangEn: true, fileName: '', title: '', meta: '', savedCloud: false,
-    apiKey: '', showKey: false, recents: [], copied: false,
+    apiKey: '', showKey: false, recents: [], copied: false, vocabHint: '', canRetrySummary: false,
   };
+
+  openRecent(idx) {
+    const r = this.state.recents[idx];
+    if (!r || !r.memo) return;
+    this._memoTxt = r.memoTxt || '';
+    this.setState({ screen: 'saved', memo: r.memo, memoLangEn: true, title: r.title, meta: r.meta, fileName: r.fileName || '', savedCloud: false, copied: false, canRetrySummary: false });
+  }
 
   async copyMemo() {
     const txt = this._memoTxt || '';
@@ -238,10 +261,11 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
-    let key = '', recents = [];
+    let key = '', recents = [], vocabHint = '';
     try { key = localStorage.getItem('mm_key') || ''; } catch (e) {}
     try { recents = JSON.parse(localStorage.getItem('mm_recents') || '[]'); } catch (e) {}
-    this.setState({ apiKey: key, recents });
+    try { vocabHint = localStorage.getItem('mm_vocab') || ''; } catch (e) {}
+    this.setState({ apiKey: key, recents, vocabHint });
   }
   componentWillUnmount() {
     clearInterval(this._timer);
@@ -256,6 +280,30 @@ class Component extends DCLogic {
     return '';
   }
   extOf(m) { return (m || '').includes('mp4') ? 'mp4' : (m || '').includes('aac') ? 'm4a' : 'webm'; }
+
+  getAudioDuration(file) {
+    return new Promise((resolve) => {
+      try {
+        const url = URL.createObjectURL(file);
+        const audio = document.createElement('audio');
+        audio.preload = 'metadata';
+        audio.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(isFinite(audio.duration) ? Math.round(audio.duration) : 0); };
+        audio.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+        audio.src = url;
+      } catch (e) { resolve(0); }
+    });
+  }
+  triggerImport() {
+    const el = document.getElementById('mm-file-input');
+    if (el) el.click();
+  }
+  async onImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    this._recSec = await this.getAudioDuration(file);
+    this.process(file, null, file.name);
+  }
 
   async onStart() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -289,22 +337,42 @@ class Component extends DCLogic {
     else this.process(new Blob(this._chunks || [], { type: this._mime || 'audio/webm' }), this.extOf(this._mime));
   }
 
-  async transcribe(blob, ext) {
+  async transcribe(blob, ext, importedName) {
     const fd = new FormData();
-    fd.append('file', new File([blob], 'meeting.' + ext, { type: blob.type || 'audio/webm' }));
-    fd.append('model', 'gpt-4o-transcribe');
+    const file = importedName
+      ? (blob instanceof File ? blob : new File([blob], importedName, { type: blob.type || 'audio/mp4' }))
+      : new File([blob], 'meeting.' + ext, { type: blob.type || 'audio/webm' });
+    fd.append('file', file);
+    fd.append('model', 'gpt-4o-transcribe-diarize');
+    fd.append('response_format', 'diarized_json');
+    fd.append('chunking_strategy', 'auto');
+    // Note: gpt-4o-transcribe-diarize doesn't support the prompt/vocabulary-hint parameter.
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST', headers: { Authorization: 'Bearer ' + this.state.apiKey }, body: fd,
     });
     if (!res.ok) throw new Error('Transcription failed (' + res.status + '). ' + (await res.text()).slice(0, 160));
-    return (await res.json()).text || '';
+    const data = await res.json();
+    const segs = data.segments || [];
+    if (!segs.length) return data.text || '';
+    return segs.map(s => (s.speaker || 'Speaker') + ': ' + (s.text || '').trim()).join('\n');
   }
 
   async summarize(transcript) {
-    const sys = 'You are an executive assistant. From the meeting transcript, write a concise professional memo. Reply ONLY with a JSON object with these exact keys: "title" (short meeting title, string), "summary_en" (2-4 sentence English summary), "summary_zh" (same summary in Simplified Chinese), "key_points_en" (array of short English strings), "key_points_zh" (same in Simplified Chinese), "action_items_en" (array of "Owner — task" English strings), "action_items_zh" (same in Simplified Chinese). Keep it tight and business-appropriate.';
+    const sys = 'You are an executive assistant. From the meeting transcript, write a concise, business-appropriate memo: a short title, a 2-4 sentence summary in English and in Simplified Chinese, short key points in both languages, and action items in "Owner — task" format in both languages.';
+    const strArr = { type: 'array', items: { type: 'string' } };
+    const schema = {
+      type: 'object',
+      properties: {
+        title: { type: 'string' }, summary_en: { type: 'string' }, summary_zh: { type: 'string' },
+        key_points_en: strArr, key_points_zh: strArr, action_items_en: strArr, action_items_zh: strArr,
+      },
+      required: ['title', 'summary_en', 'summary_zh', 'key_points_en', 'key_points_zh', 'action_items_en', 'action_items_zh'],
+      additionalProperties: false,
+    };
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + this.state.apiKey },
-      body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.3, response_format: { type: 'json_object' },
+      body: JSON.stringify({ model: 'gpt-5.4-nano', temperature: 0.3,
+        response_format: { type: 'json_schema', json_schema: { name: 'meeting_memo', strict: true, schema } },
         messages: [{ role: 'system', content: sys }, { role: 'user', content: transcript }] }),
     });
     if (!res.ok) throw new Error('Summary failed (' + res.status + '). ' + (await res.text()).slice(0, 160));
@@ -326,14 +394,28 @@ class Component extends DCLogic {
     ].join('\n');
   }
 
-  async process(blob, ext) {
+  async process(blob, ext, importedName) {
+    this._lastTranscript = null;
+    this._lastImportedName = importedName;
+    try {
+      const useApi = !!this.state.apiKey;
+      this.setState({ screen: 'processing', status: 'Transcribing your meeting…', error: null, canRetrySummary: false });
+      let transcript = null;
+      if (useApi) {
+        transcript = await this.transcribe(blob, ext, importedName);
+        this._lastTranscript = transcript;
+      }
+      await this.finishSummarize(useApi, transcript);
+    } catch (err) {
+      this.setState({ screen: 'error', error: (err && err.message) || 'Unexpected error.', canRetrySummary: false });
+    }
+  }
+
+  async finishSummarize(useApi, transcript) {
     try {
       let memo;
-      const useApi = !!this.state.apiKey;
-      this.setState({ screen: 'processing', status: 'Transcribing your meeting…', error: null });
+      this.setState({ screen: 'processing', status: 'Writing your memo…', error: null });
       if (useApi) {
-        const transcript = await this.transcribe(blob, ext);
-        this.setState({ status: 'Writing your memo…' });
         memo = await this.summarize(transcript);
       } else {
         await wait(1600);
@@ -345,19 +427,24 @@ class Component extends DCLogic {
       const pad = n => String(n).padStart(2, '0');
       const dateStr = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
       const durStr = this.fmt(this._recSec || 0);
-      const meta = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + durStr;
+      const meta = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' · ' + durStr + (this._lastImportedName ? ' · Imported' : '');
       const slug = (memo.title || 'Memo').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '');
       const fileName = slug + '_' + dateStr + '_' + pad(now.getHours()) + pad(now.getMinutes()) + '.txt';
       const memoTxt = this.buildTxt(memo, dateStr, durStr);
 
-      const recents = [{ title: memo.title, meta }, ...this.state.recents].slice(0, 4);
+      const recents = [{ title: memo.title, meta, memo, memoTxt, fileName }, ...this.state.recents].slice(0, 4);
       try { localStorage.setItem('mm_recents', JSON.stringify(recents)); } catch (e) {}
 
       this._memoTxt = memoTxt;
-      this.setState({ screen: 'saved', memo, memoLangEn: true, title: memo.title, meta, fileName, savedCloud: false, copied: false, recents });
+      this.setState({ screen: 'saved', memo, memoLangEn: true, title: memo.title, meta, fileName, savedCloud: false, copied: false, recents, canRetrySummary: false });
     } catch (err) {
-      this.setState({ screen: 'error', error: (err && err.message) || 'Unexpected error.' });
+      this.setState({ screen: 'error', error: (err && err.message) || 'Unexpected error.', canRetrySummary: !!transcript });
     }
+  }
+
+  retrySummary() {
+    if (!this._lastTranscript) { this.setState({ screen: 'home', canRetrySummary: false }); return; }
+    this.finishSummarize(true, this._lastTranscript);
   }
 
   async saveFile() {
@@ -379,6 +466,7 @@ class Component extends DCLogic {
   }
 
   setKey(e) { const v = e.target.value; this.setState({ apiKey: v }); try { localStorage.setItem('mm_key', v); } catch (err) {} }
+  setVocab(e) { const v = e.target.value; this.setState({ vocabHint: v }); try { localStorage.setItem('mm_vocab', v); } catch (err) {} }
 
   renderVals() {
     const s = this.state, m = s.memo, en = s.memoLangEn;
@@ -394,7 +482,8 @@ class Component extends DCLogic {
       isSaved: s.screen === 'saved', isError: s.screen === 'error', isSet: s.screen === 'settings',
       time: this.fmt(s.sec), status: s.status, error: s.error,
       wave: React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 3, height: 62, width: '86%' } }, bars),
-      recents: s.recents, hasRecents: s.recents.length > 0, noRecents: s.recents.length === 0,
+      recents: s.recents.map((r, i) => ({ ...r, open: () => this.openRecent(i) })),
+      hasRecents: s.recents.length > 0, noRecents: s.recents.length === 0,
       title: s.title, meta: s.meta, fileName: s.fileName,
       savedTitle: s.savedCloud ? 'Saved to iCloud' : 'Memo ready',
       checkBg: s.savedCloud ? '#12301E' : '#241A12',
@@ -405,9 +494,12 @@ class Component extends DCLogic {
       enBg: en ? '#2E2E30' : 'transparent', enFg: en ? '#fff' : '#8a8a90',
       zhBg: !en ? '#2E2E30' : 'transparent', zhFg: !en ? '#fff' : '#8a8a90',
       apiKey: s.apiKey, keyInputType: s.showKey ? 'text' : 'password', showLabel: s.showKey ? 'Hide' : 'Show',
+      vocabHint: s.vocabHint, setVocab: (e) => this.setVocab(e),
       pillBg: hasKey ? '#12301E' : '#2A2012', pillFg: hasKey ? '#6FE39B' : '#E8A86A',
       pillDot: hasKey ? '#3BD97B' : '#E8A86A', pillText: hasKey ? 'Connected to OpenAI' : 'Demo mode · tap to add API key',
-      onStart: () => this.onStart(), onStop: () => this.onStop(), onNew: () => this.setState({ screen: 'home', sec: 0, error: null }),
+      onStart: () => this.onStart(), onStop: () => this.onStop(), onNew: () => this.setState({ screen: 'home', sec: 0, error: null, canRetrySummary: false }),
+      triggerImport: () => this.triggerImport(), onImportFile: (e) => this.onImportFile(e),
+      canRetrySummary: s.canRetrySummary, retrySummary: () => this.retrySummary(), backStartBg: s.canRetrySummary ? '#1E1E20' : '#D97757',
       openSettings: () => this.setState({ screen: 'settings' }), closeSettings: () => this.setState({ screen: 'home' }),
       statusClick: () => this.setState({ screen: 'settings' }),
       setLangEn: () => this.setState({ memoLangEn: true }), setLangZh: () => this.setState({ memoLangEn: false }),
