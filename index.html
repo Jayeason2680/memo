@@ -70,7 +70,7 @@
           <span style="font-size:21px; font-weight:700; letter-spacing:0.1em;">START</span>
         </button>
 
-        <input id="mm-file-input" type="file" accept="audio/*" style="display:none;" onChange="{{ onImportFile }}">
+        <input id="mm-file-input" type="file" accept="audio/*,.m4a,.caf,.wav,.mp3,.mp4,.aac,.mov" style="display:none;" onChange="{{ onImportFile }}">
         <button onClick="{{ triggerImport }}" style="align-self:center; margin-top:14px; border:none; cursor:pointer; background:transparent; color:#9a9a9f; font-size:14px; font-weight:600; padding:6px 10px; display:flex; align-items:center; gap:7px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 15V4m0 0L8 8m4-4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
           Import a recording
