@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  * { -webkit-font-smoothing: antialiased; box-sizing: border-box; }
+  body { margin: 0; background: #E6E6E9; font-family: -apple-system, "SF Pro Text", system-ui, sans-serif; }
+  a { color: #D97757; text-decoration: none; }
+  a:hover { color: #C25E3F; }
+  @keyframes wv { 0% { transform: scaleY(0.35); } 100% { transform: scaleY(1); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes softpulse { 0% { transform: scale(1); opacity: 0.55; } 100% { transform: scale(1.5); opacity: 0; } }
+  @keyframes reddot { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+</style>
+</helmet>
+
+<section style="display:flex; flex-direction:column; gap:20px; padding:44px;">
+  <div style="max-width:960px;">
+    <div style="font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:#8a8a90;">Turn 1 · Two directions</div>
+    <h1 style="margin:6px 0 4px; font-size:30px; font-weight:700; color:#1a1a1a; letter-spacing:-0.02em;">Meeting Memo — voice to memo</h1>
+    <p style="margin:0; font-size:15px; line-height:1.5; color:#6b6b70; max-width:640px;">Tap the big button to record, stop, and watch it transcribe + summarize into a memo saved to iCloud. Both phones are live — try the full flow. Language toggle (EN / 中文) appears on the saved memo.</p>
+  </div>
+
+  <div style="display:flex; flex-wrap:wrap; gap:56px; align-items:flex-start;">
+
+    <!-- ============ OPTION 1A — LIGHT / CLAUDE ============ -->
+    <div id="1a" style="display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="background:#1a1a1a; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:7px;">1A</span>
+        <div>
+          <div style="font-size:16px; font-weight:650; color:#1a1a1a;">Focus — light &amp; calm</div>
+          <div style="font-size:13px; color:#8a8a90;">One big round button, centered low. Warm Claude accent.</div>
+        </div>
+      </div>
+
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px">
+        <div style="position:relative; height:100%; color:#1a1a1a;">
+
+          <!-- HOME -->
+          <sc-if value="{{ aIsHome }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; padding:60px 22px 44px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">Memos</span>
+                <button onClick="{{ aSettings }}" style="width:40px; height:40px; border:none; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:center; cursor:pointer; color:#404040;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="8" r="3" fill="#fff" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="16" r="3" fill="#fff" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+              </div>
+
+              <div style="margin-top:26px; font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#a0a0a6;">Recent</div>
+              <div style="margin-top:10px; background:#fff; border-radius:18px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div style="font-size:16px; font-weight:650;">Weekly Standup</div>
+                <div style="font-size:13px; color:#9a9a9f; margin-top:2px;">Jul 9 · 28:04 · saved ✓</div>
+                <div style="font-size:13.5px; color:#6b6b70; line-height:1.5; margin-top:8px;">Sprint on track; QA blocked on staging access. Owner assigned.</div>
+              </div>
+
+              <div style="flex:1;"></div>
+
+              <div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+                <div style="font-size:14px; color:#9a9a9f;">Tap to record your meeting</div>
+                <button onClick="{{ aStart }}" style="width:148px; height:148px; border:none; border-radius:50%; background:#D97757; color:#fff; box-shadow:0 12px 30px rgba(217,119,87,0.4); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                  <svg width="52" height="52" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- RECORDING -->
+          <sc-if value="{{ aIsRec }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; padding:60px 22px 44px;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span style="width:9px; height:9px; border-radius:50%; background:#E5484D; animation:reddot 1.4s ease-in-out infinite;"></span>
+                <span style="font-size:15px; font-weight:600; color:#8a8a90;">Recording</span>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;">
+                <div style="font-size:64px; font-weight:300; letter-spacing:-0.02em; font-variant-numeric:tabular-nums;">{{ aTime }}</div>
+                {{ aWave }}
+                <div style="display:flex; align-items:center; gap:8px; background:#fff; padding:7px 14px; border-radius:999px; box-shadow:0 1px 3px rgba(0,0,0,0.06); font-size:13.5px; color:#6b6b70; font-weight:600;">EN · 中文 · auto-detect</div>
+              </div>
+              <div style="display:flex; flex-direction:column; align-items:center; gap:14px;">
+                <div style="font-size:14px; color:#9a9a9f;">Tap to stop &amp; save</div>
+                <button onClick="{{ aStop }}" style="width:148px; height:148px; border:none; border-radius:50%; background:#fff; box-shadow:0 8px 24px rgba(0,0,0,0.12); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                  <span style="width:44px; height:44px; border-radius:12px; background:#D97757;"></span>
+                </button>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- PROCESSING -->
+          <sc-if value="{{ aIsProc }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; padding:60px 34px 44px;">
+              <div style="width:56px; height:56px; border-radius:50%; border:4px solid #EAD9D1; border-top-color:#D97757; animation:spin 0.85s linear infinite;"></div>
+              <div style="text-align:center;">
+                <div style="font-size:20px; font-weight:650;">Transcribing &amp; summarizing…</div>
+                <div style="font-size:14px; color:#9a9a9f; line-height:1.6; margin-top:8px;">Cleaning up speech → writing a memo →<br>saving .txt to iCloud</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- SAVED -->
+          <sc-if value="{{ aIsSaved }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; overflow:auto; display:flex; flex-direction:column; padding:60px 20px 44px;">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:18px;">
+                <div style="width:56px; height:56px; border-radius:50%; background:#EBF7EE; display:flex; align-items:center; justify-content:center;">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#2E9E56" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div style="font-size:19px; font-weight:650;">Saved to iCloud</div>
+                <div style="font-size:12.5px; color:#a0a0a6; font-family:ui-monospace,Menlo,monospace;">Q3-Marketing-Sync_2026-07-11.txt</div>
+              </div>
+
+              <div style="background:#fff; border-radius:20px; padding:18px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div style="font-size:18px; font-weight:700;">Q3 Marketing Sync</div>
+                <div style="font-size:13px; color:#9a9a9f; margin-top:3px;">Jul 11, 2026 · 42:18 · 4 speakers</div>
+
+                <div style="display:inline-flex; margin-top:14px; background:#F2F2F4; border-radius:9px; padding:3px;">
+                  <button onClick="{{ aEn }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:5px 14px; border-radius:7px; background:{{ aEnBg }}; color:{{ aEnFg }};">English</button>
+                  <button onClick="{{ aZh }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:5px 14px; border-radius:7px; background:{{ aZhBg }}; color:{{ aZhFg }};">中文</button>
+                </div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#b0b0b6; margin-top:16px;">Summary</div>
+                <div style="font-size:14.5px; line-height:1.6; color:#3a3a3e; margin-top:6px;">{{ aSummary }}</div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#b0b0b6; margin-top:16px;">Key points</div>
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ aPoints }}" as="pt" hint-placeholder-count="2">
+                    <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#3a3a3e;"><span style="color:#D97757;">•</span><span>{{ pt }}</span></div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#b0b0b6; margin-top:16px;">Action items</div>
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ aActions }}" as="ac" hint-placeholder-count="2">
+                    <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#3a3a3e;"><span style="width:16px; height:16px; margin-top:1px; border:1.6px solid #c9c9cf; border-radius:5px; flex-shrink:0;"></span><span>{{ ac }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="flex:1; min-height:16px;"></div>
+              <button onClick="{{ aNew }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:17px; font-weight:650; padding:16px; border-radius:16px; box-shadow:0 6px 18px rgba(217,119,87,0.3);">New recording</button>
+            </div>
+          </sc-if>
+
+          <!-- SETTINGS -->
+          <sc-if value="{{ aIsSet }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; overflow:auto; display:flex; flex-direction:column; padding:60px 20px 44px;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
+                <button onClick="{{ aBack }}" style="border:none; background:none; cursor:pointer; color:#D97757; font-size:16px; font-weight:600; display:flex; align-items:center; gap:2px; padding:0;">
+                  <svg width="11" height="18" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#D97757" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+                </button>
+              </div>
+              <div style="font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:16px;">Settings</div>
+
+              <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#a0a0a6; margin:6px 0 8px;">ChatGPT API</div>
+              <div style="background:#fff; border-radius:16px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                <div style="font-size:13px; color:#9a9a9f;">API key</div>
+                <div style="font-size:15px; font-family:ui-monospace,Menlo,monospace; color:#3a3a3e; margin-top:4px;">sk-··········································9f3a</div>
+              </div>
+
+              <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#a0a0a6; margin:20px 0 8px;">Output</div>
+              <div style="background:#fff; border-radius:16px; box-shadow:0 1px 3px rgba(0,0,0,0.06); overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:0.5px solid #ececef;"><span style="font-size:16px;">Language</span><span style="font-size:15px; color:#9a9a9f;">English + 中文 ›</span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:0.5px solid #ececef;"><span style="font-size:16px;">Save .txt to iCloud</span><span style="width:46px; height:28px; border-radius:999px; background:#34C759; position:relative;"><span style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span></span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;"><span style="font-size:16px;">Auto-export &amp; backup</span><span style="width:46px; height:28px; border-radius:999px; background:#34C759; position:relative;"><span style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.25);"></span></span></div>
+              </div>
+              <div style="font-size:12.5px; color:#a0a0a6; line-height:1.5; margin-top:10px; padding:0 4px;">Every memo is written to your iCloud Drive folder automatically the moment it's saved.</div>
+            </div>
+          </sc-if>
+
+        </div>
+      </x-import>
+    </div>
+
+    <!-- ============ OPTION 1B — DARK / STUDIO ============ -->
+    <div id="1b" style="display:flex; flex-direction:column; gap:14px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="background:#1a1a1a; color:#fff; font-size:13px; font-weight:700; padding:4px 10px; border-radius:7px;">1B</span>
+        <div>
+          <div style="font-size:16px; font-weight:650; color:#1a1a1a;">Studio — dark &amp; high-contrast</div>
+          <div style="font-size:13px; color:#8a8a90;">Full-width record bar at the bottom. Big timer, bold.</div>
+        </div>
+      </div>
+
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="402px,874px">
+        <div style="position:relative; height:100%; color:#fff; background:#0C0C0D;">
+
+          <!-- HOME -->
+          <sc-if value="{{ bIsHome }}" hint-placeholder-val="{{ true }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; padding:60px 22px 44px;">
+              <div style="display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:26px; font-weight:700; letter-spacing:-0.02em;">Memos</span>
+                <button onClick="{{ bSettings }}" style="width:40px; height:40px; border:none; border-radius:50%; background:#1E1E20; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#c8c8ce;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="8" r="3" fill="#0C0C0D" stroke="currentColor" stroke-width="1.8"/><circle cx="9" cy="16" r="3" fill="#0C0C0D" stroke="currentColor" stroke-width="1.8"/></svg>
+                </button>
+              </div>
+
+              <div style="margin-top:26px; font-size:13px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70;">Recent</div>
+              <div style="margin-top:10px; background:#1A1A1C; border-radius:18px; padding:16px;">
+                <div style="font-size:16px; font-weight:650;">Weekly Standup</div>
+                <div style="font-size:13px; color:#7a7a80; margin-top:2px;">Jul 9 · 28:04 · saved ✓</div>
+                <div style="font-size:13.5px; color:#b0b0b6; line-height:1.5; margin-top:8px;">Sprint on track; QA blocked on staging access. Owner assigned.</div>
+              </div>
+
+              <div style="flex:1;"></div>
+
+              <button onClick="{{ bStart }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; padding:18px; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:12px; box-shadow:0 12px 30px rgba(217,119,87,0.35);">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor"/><path d="M6 11a6 6 0 0 0 12 0" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round"/><line x1="12" y1="17" x2="12" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <span style="font-size:19px; font-weight:700; letter-spacing:0.08em;">START</span>
+              </button>
+            </div>
+          </sc-if>
+
+          <!-- RECORDING -->
+          <sc-if value="{{ bIsRec }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; padding:60px 22px 44px;">
+              <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                <span style="width:9px; height:9px; border-radius:50%; background:#E5484D; animation:reddot 1.4s ease-in-out infinite;"></span>
+                <span style="font-size:15px; font-weight:600; color:#8a8a90;">Recording</span>
+              </div>
+              <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:30px;">
+                <div style="font-size:72px; font-weight:600; letter-spacing:-0.03em; font-variant-numeric:tabular-nums;">{{ bTime }}</div>
+                {{ bWave }}
+                <div style="display:flex; align-items:center; gap:8px; background:#1A1A1C; padding:8px 15px; border-radius:999px; font-size:13.5px; color:#b0b0b6; font-weight:600;">EN · 中文 · auto-detect</div>
+              </div>
+              <button onClick="{{ bStop }}" style="width:100%; border:none; cursor:pointer; background:#1E1E20; color:#fff; padding:18px; border-radius:20px; display:flex; align-items:center; justify-content:center; gap:12px; border:1px solid #2c2c2e;">
+                <span style="width:22px; height:22px; border-radius:6px; background:#E5484D;"></span>
+                <span style="font-size:19px; font-weight:700;">Stop &amp; save</span>
+              </button>
+            </div>
+          </sc-if>
+
+          <!-- PROCESSING -->
+          <sc-if value="{{ bIsProc }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px; padding:60px 34px 44px;">
+              <div style="width:56px; height:56px; border-radius:50%; border:4px solid #2c2c2e; border-top-color:#D97757; animation:spin 0.85s linear infinite;"></div>
+              <div style="text-align:center;">
+                <div style="font-size:20px; font-weight:650;">Transcribing &amp; summarizing…</div>
+                <div style="font-size:14px; color:#7a7a80; line-height:1.6; margin-top:8px;">Cleaning up speech → writing a memo →<br>saving .txt to iCloud</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- SAVED -->
+          <sc-if value="{{ bIsSaved }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; overflow:auto; display:flex; flex-direction:column; padding:60px 20px 44px;">
+              <div style="display:flex; flex-direction:column; align-items:center; gap:10px; margin-bottom:18px;">
+                <div style="width:56px; height:56px; border-radius:50%; background:#12301E; display:flex; align-items:center; justify-content:center;">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#3BD97B" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div style="font-size:19px; font-weight:650;">Saved to iCloud</div>
+                <div style="font-size:12.5px; color:#7a7a80; font-family:ui-monospace,Menlo,monospace;">Q3-Marketing-Sync_2026-07-11.txt</div>
+              </div>
+
+              <div style="background:#1A1A1C; border-radius:20px; padding:18px;">
+                <div style="font-size:18px; font-weight:700;">Q3 Marketing Sync</div>
+                <div style="font-size:13px; color:#7a7a80; margin-top:3px;">Jul 11, 2026 · 42:18 · 4 speakers</div>
+
+                <div style="display:inline-flex; margin-top:14px; background:#0C0C0D; border-radius:9px; padding:3px;">
+                  <button onClick="{{ bEn }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:5px 14px; border-radius:7px; background:{{ bEnBg }}; color:{{ bEnFg }};">English</button>
+                  <button onClick="{{ bZh }}" style="border:none; cursor:pointer; font-size:13px; font-weight:600; padding:5px 14px; border-radius:7px; background:{{ bZhBg }}; color:{{ bZhFg }};">中文</button>
+                </div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Summary</div>
+                <div style="font-size:14.5px; line-height:1.6; color:#d0d0d6; margin-top:6px;">{{ bSummary }}</div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Key points</div>
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ bPoints }}" as="pt" hint-placeholder-count="2">
+                    <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#d0d0d6;"><span style="color:#E8896A;">•</span><span>{{ pt }}</span></div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin-top:16px;">Action items</div>
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ bActions }}" as="ac" hint-placeholder-count="2">
+                    <div style="display:flex; gap:9px; font-size:14px; line-height:1.5; color:#d0d0d6;"><span style="width:16px; height:16px; margin-top:1px; border:1.6px solid #3a3a3e; border-radius:5px; flex-shrink:0;"></span><span>{{ ac }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="flex:1; min-height:16px;"></div>
+              <button onClick="{{ bNew }}" style="width:100%; border:none; cursor:pointer; background:#D97757; color:#fff; font-size:17px; font-weight:650; padding:16px; border-radius:16px;">New recording</button>
+            </div>
+          </sc-if>
+
+          <!-- SETTINGS -->
+          <sc-if value="{{ bIsSet }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; overflow:auto; display:flex; flex-direction:column; padding:60px 20px 44px;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:14px;">
+                <button onClick="{{ bBack }}" style="border:none; background:none; cursor:pointer; color:#E8896A; font-size:16px; font-weight:600; display:flex; align-items:center; gap:2px; padding:0;">
+                  <svg width="11" height="18" viewBox="0 0 12 20" fill="none"><path d="M10 2L2 10l8 8" stroke="#E8896A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Back
+                </button>
+              </div>
+              <div style="font-size:26px; font-weight:700; letter-spacing:-0.02em; margin-bottom:16px;">Settings</div>
+
+              <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:6px 0 8px;">ChatGPT API</div>
+              <div style="background:#1A1A1C; border-radius:16px; padding:14px 16px;">
+                <div style="font-size:13px; color:#7a7a80;">API key</div>
+                <div style="font-size:15px; font-family:ui-monospace,Menlo,monospace; color:#d0d0d6; margin-top:4px;">sk-··········································9f3a</div>
+              </div>
+
+              <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:20px 0 8px;">Output</div>
+              <div style="background:#1A1A1C; border-radius:16px; overflow:hidden;">
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:0.5px solid #2a2a2c;"><span style="font-size:16px;">Language</span><span style="font-size:15px; color:#7a7a80;">English + 中文 ›</span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:0.5px solid #2a2a2c;"><span style="font-size:16px;">Save .txt to iCloud</span><span style="width:46px; height:28px; border-radius:999px; background:#34C759; position:relative;"><span style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></span></span></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 16px;"><span style="font-size:16px;">Auto-export &amp; backup</span><span style="width:46px; height:28px; border-radius:999px; background:#34C759; position:relative;"><span style="position:absolute; top:2px; right:2px; width:24px; height:24px; border-radius:50%; background:#fff;"></span></span></div>
+              </div>
+              <div style="font-size:12.5px; color:#6a6a70; line-height:1.5; margin-top:10px; padding:0 4px;">Every memo is written to your iCloud Drive folder automatically the moment it's saved.</div>
+            </div>
+          </sc-if>
+
+        </div>
+      </x-import>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { aScreen: 'home', aSec: 0, aLang: 'en', bScreen: 'home', bSec: 0, bLang: 'en' };
+  _t = {};
+
+  fmt(s) {
+    const m = Math.floor(s / 60), x = s % 60;
+    return String(m).padStart(2, '0') + ':' + String(x).padStart(2, '0');
+  }
+  start(d) {
+    clearInterval(this._t[d]);
+    this.setState({ [d + 'Screen']: 'recording', [d + 'Sec']: 0 });
+    this._t[d] = setInterval(() => this.setState(p => ({ [d + 'Sec']: p[d + 'Sec'] + 1 })), 1000);
+  }
+  stop(d) {
+    clearInterval(this._t[d]);
+    this.setState({ [d + 'Screen']: 'processing' });
+    this._t[d + 'p'] = setTimeout(() => this.setState({ [d + 'Screen']: 'saved' }), 2600);
+  }
+  reset(d) {
+    clearInterval(this._t[d]);
+    clearTimeout(this._t[d + 'p']);
+    this.setState({ [d + 'Screen']: 'home', [d + 'Sec']: 0, [d + 'Lang']: 'en' });
+  }
+  go(d, s) { this.setState({ [d + 'Screen']: s }); }
+  lang(d, l) { this.setState({ [d + 'Lang']: l }); }
+
+  componentWillUnmount() {
+    Object.values(this._t).forEach(t => { clearInterval(t); clearTimeout(t); });
+  }
+
+  wave(color) {
+    const bars = Array.from({ length: 34 }).map((_, i) => {
+      const h = 22 + ((i * 41) % 60);
+      const dur = 620 + ((i * 53) % 520);
+      return React.createElement('div', {
+        key: i,
+        style: {
+          width: 3, borderRadius: 3, background: color,
+          height: h + '%', transformOrigin: 'center',
+          animation: `wv ${dur}ms ease-in-out ${(i * 47) % 400}ms infinite alternate`,
+        },
+      });
+    });
+    return React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', gap: 3, height: 60, width: '86%' },
+    }, bars);
+  }
+
+  renderVals() {
+    const en = {
+      summary: 'The team aligned on the Q3 campaign timeline, shifted budget toward paid social, and agreed to launch the landing page by month-end.',
+      points: ['Paid social budget increased 20%', 'Landing page copy due Jul 18'],
+      actions: ['Wei — finalize the creative brief (Fri)', 'Alex — book the media buy'],
+    };
+    const zh = {
+      summary: '团队确定了第三季度营销活动的时间表，将预算向付费社交媒体倾斜，并同意在月底前上线落地页。',
+      points: ['付费社交预算增加 20%', '落地页文案 7 月 18 日截止'],
+      actions: ['伟 — 完成创意简报（周五）', 'Alex — 预订媒体投放'],
+    };
+    const mk = (d, accentBg, accentFg, restBg, restFg) => {
+      const sc = this.state[d + 'Screen'];
+      const isEn = this.state[d + 'Lang'] === 'en';
+      const data = isEn ? en : zh;
+      return {
+        [d + 'IsHome']: sc === 'home', [d + 'IsRec']: sc === 'recording',
+        [d + 'IsProc']: sc === 'processing', [d + 'IsSaved']: sc === 'saved', [d + 'IsSet']: sc === 'settings',
+        [d + 'Time']: this.fmt(this.state[d + 'Sec']),
+        [d + 'Summary']: data.summary, [d + 'Points']: data.points, [d + 'Actions']: data.actions,
+        [d + 'EnBg']: isEn ? accentBg : 'transparent', [d + 'EnFg']: isEn ? accentFg : restFg,
+        [d + 'ZhBg']: !isEn ? accentBg : 'transparent', [d + 'ZhFg']: !isEn ? accentFg : restFg,
+        [d + 'Wave']: this.wave(d === 'a' ? '#D97757' : '#E8896A'),
+      };
+    };
+    return {
+      ...mk('a', '#ffffff', '#1a1a1a', 'transparent', '#8a8a90'),
+      ...mk('b', '#2E2E30', '#ffffff', 'transparent', '#8a8a90'),
+      aStart: () => this.start('a'), aStop: () => this.stop('a'), aNew: () => this.reset('a'),
+      aSettings: () => this.go('a', 'settings'), aBack: () => this.go('a', 'home'),
+      aEn: () => this.lang('a', 'en'), aZh: () => this.lang('a', 'zh'),
+      bStart: () => this.start('b'), bStop: () => this.stop('b'), bNew: () => this.reset('b'),
+      bSettings: () => this.go('b', 'settings'), bBack: () => this.go('b', 'home'),
+      bEn: () => this.lang('b', 'en'), bZh: () => this.lang('b', 'zh'),
+    };
+  }
+}
+</script>
+</body>
+</html>
