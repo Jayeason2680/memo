@@ -199,11 +199,20 @@
         </div>
         <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">Stored only on this device. Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>. Leave empty to preview in demo mode.</div>
 
+        <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Transcription mode</div>
+        <div style="background:#1A1A1C; border-radius:16px; padding:10px 12px;">
+          <select value="{{ transcribeMode }}" onChange="{{ setTranscribeMode }}" style="width:100%; background:#242426; border:1px solid #343438; border-radius:12px; outline:none; color:#fff; font-size:15px; font-family:inherit; padding:13px 12px;">
+            <option value="meeting">Meeting — separate speakers</option>
+            <option value="quick">Quick note — lower cost</option>
+          </select>
+        </div>
+        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">{{ modeHelp }}</div>
+
         <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Vocabulary hints</div>
         <div style="background:#1A1A1C; border-radius:16px; padding:14px 16px;">
           <textarea value="{{ vocabHint }}" onInput="{{ setVocab }}" placeholder="Attendee names, company, product terms…" rows="3" style="width:100%; background:transparent; border:none; outline:none; color:#fff; font-size:14px; font-family:inherit; line-height:1.5; resize:vertical;"></textarea>
         </div>
-        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">Optional, e.g. "Attendees: Jayson, Wei, Alex. Client: Acme Corp." Currently not applied — the speaker-diarized transcription model doesn't support vocabulary hints yet.</div>
+        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">{{ vocabHelp }}</div>
 
         <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Output</div>
         <div style="background:#1A1A1C; border-radius:16px; overflow:hidden;">
@@ -235,7 +244,7 @@ class Component extends DCLogic {
   state = {
     screen: 'home', sec: 0, status: '', error: null,
     memo: null, memoLangEn: true, fileName: '', title: '', meta: '', savedCloud: false,
-    apiKey: '', showKey: false, recents: [], copied: false, vocabHint: '', canRetrySummary: false,
+    apiKey: '', showKey: false, recents: [], copied: false, vocabHint: '', transcribeMode: 'meeting', canRetrySummary: false,
   };
 
   openRecent(idx) {
@@ -261,11 +270,15 @@ class Component extends DCLogic {
   }
 
   componentDidMount() {
-    let key = '', recents = [], vocabHint = '';
+    let key = '', recents = [], vocabHint = '', transcribeMode = 'meeting';
     try { key = localStorage.getItem('mm_key') || ''; } catch (e) {}
     try { recents = JSON.parse(localStorage.getItem('mm_recents') || '[]'); } catch (e) {}
     try { vocabHint = localStorage.getItem('mm_vocab') || ''; } catch (e) {}
-    this.setState({ apiKey: key, recents, vocabHint });
+    try {
+      const savedMode = localStorage.getItem('mm_transcription_mode');
+      if (savedMode === 'quick' || savedMode === 'meeting') transcribeMode = savedMode;
+    } catch (e) {}
+    this.setState({ apiKey: key, recents, vocabHint, transcribeMode });
   }
   componentWillUnmount() {
     clearInterval(this._timer);
@@ -343,15 +356,34 @@ class Component extends DCLogic {
       ? (blob instanceof File ? blob : new File([blob], importedName, { type: blob.type || 'audio/mp4' }))
       : new File([blob], 'meeting.' + ext, { type: blob.type || 'audio/webm' });
     fd.append('file', file);
-    fd.append('model', 'gpt-4o-transcribe-diarize');
-    fd.append('response_format', 'diarized_json');
-    fd.append('chunking_strategy', 'auto');
-    // Note: gpt-4o-transcribe-diarize doesn't support the prompt/vocabulary-hint parameter.
+    const quickMode = this.state.transcribeMode === 'quick';
+    if (quickMode) {
+      fd.append('model', 'gpt-transcribe');
+      fd.append('languages[]', 'en');
+      fd.append('languages[]', 'cmn');
+      fd.append('languages[]', 'yue');
+      const hint = (this.state.vocabHint || '').trim().slice(0, 1000);
+      const prompt = 'A business meeting or personal voice note that may switch between English, Mandarin Chinese, and Cantonese. Preserve the spoken language, names, acronyms, numbers, and business terminology accurately.'
+        + (hint ? ' Expected names and terms: ' + hint : '');
+      fd.append('prompt', prompt);
+      if (hint) {
+        hint.split(/[,;\n]+/)
+          .map(x => x.replace(/^(attendees?|client|company|terms?|products?):\s*/i, '').replace(/[<>\r\n]/g, '').trim())
+          .filter(Boolean)
+          .slice(0, 30)
+          .forEach(term => fd.append('keywords[]', term.slice(0, 80)));
+      }
+    } else {
+      fd.append('model', 'gpt-4o-transcribe-diarize');
+      fd.append('response_format', 'diarized_json');
+      fd.append('chunking_strategy', 'auto');
+    }
     const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST', headers: { Authorization: 'Bearer ' + this.state.apiKey }, body: fd,
     });
     if (!res.ok) throw new Error('Transcription failed (' + res.status + '). ' + (await res.text()).slice(0, 160));
     const data = await res.json();
+    if (quickMode) return data.text || '';
     const segs = data.segments || [];
     if (!segs.length) return data.text || '';
     return segs.map(s => (s.speaker || 'Speaker') + ': ' + (s.text || '').trim()).join('\n');
@@ -467,6 +499,11 @@ class Component extends DCLogic {
 
   setKey(e) { const v = e.target.value; this.setState({ apiKey: v }); try { localStorage.setItem('mm_key', v); } catch (err) {} }
   setVocab(e) { const v = e.target.value; this.setState({ vocabHint: v }); try { localStorage.setItem('mm_vocab', v); } catch (err) {} }
+  setTranscribeMode(e) {
+    const v = e.target.value === 'quick' ? 'quick' : 'meeting';
+    this.setState({ transcribeMode: v });
+    try { localStorage.setItem('mm_transcription_mode', v); } catch (err) {}
+  }
 
   renderVals() {
     const s = this.state, m = s.memo, en = s.memoLangEn;
@@ -495,6 +532,13 @@ class Component extends DCLogic {
       zhBg: !en ? '#2E2E30' : 'transparent', zhFg: !en ? '#fff' : '#8a8a90',
       apiKey: s.apiKey, keyInputType: s.showKey ? 'text' : 'password', showLabel: s.showKey ? 'Hide' : 'Show',
       vocabHint: s.vocabHint, setVocab: (e) => this.setVocab(e),
+      transcribeMode: s.transcribeMode, setTranscribeMode: (e) => this.setTranscribeMode(e),
+      modeHelp: s.transcribeMode === 'quick'
+        ? 'Uses the new gpt-transcribe model. About 25% cheaper, with vocabulary guidance, but it does not separate speakers.'
+        : 'Recommended for meetings. Separates different speakers so action items are easier to attribute.',
+      vocabHelp: s.transcribeMode === 'quick'
+        ? 'Applied to Quick note mode to improve names, companies, product terms, and acronyms. Example: "Jayson, HSBC, Midea, H2H, CARM".'
+        : 'Saved for Quick note mode. Meeting mode keeps speaker labels, but its diarized model cannot use vocabulary hints.',
       pillBg: hasKey ? '#12301E' : '#2A2012', pillFg: hasKey ? '#6FE39B' : '#E8A86A',
       pillDot: hasKey ? '#3BD97B' : '#E8A86A', pillText: hasKey ? 'Connected to OpenAI' : 'Demo mode · tap to add API key',
       onStart: () => this.onStart(), onStop: () => this.onStop(), onNew: () => this.setState({ screen: 'home', sec: 0, error: null, canRetrySummary: false }),
