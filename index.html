@@ -70,7 +70,11 @@
             <option value="meeting">Meeting — separate speakers</option>
             <option value="quick">Voice memo / quick note</option>
           </select>
-          <div style="font-size:11.5px; color:#66666c; line-height:1.45; margin-top:7px;">{{ homeModeHelp }}</div>
+          <div style="font-size:11.5px; color:#77777d; line-height:1.45; margin-top:7px;">{{ homeModeHelp }}</div>
+          <div style="display:flex; gap:7px; align-items:flex-start; background:#1C1C1F; border-radius:9px; padding:8px 9px; margin-top:8px; font-size:11.5px; line-height:1.45;">
+            <span style="color:#E8896A; font-weight:700; flex:none;">Example</span>
+            <span style="color:#9a9aa0;">{{ homeModeExample }}</span>
+          </div>
         </div>
 
         <button onClick="{{ statusClick }}" style="align-self:center; margin-bottom:16px; border:none; cursor:pointer; background:{{ pillBg }}; color:{{ pillFg }}; font-size:13px; font-weight:600; padding:8px 15px; border-radius:999px; display:flex; align-items:center; gap:8px;">
@@ -249,19 +253,64 @@
         <div style="background:#1A1A1C; border-radius:16px; padding:10px 12px;">
           <select value="{{ transcribeMode }}" onChange="{{ setTranscribeMode }}" style="width:100%; background:#242426; border:1px solid #343438; border-radius:12px; outline:none; color:#fff; font-size:15px; font-family:inherit; padding:13px 12px;">
             <option value="meeting">Meeting — separate speakers</option>
-            <option value="quick">Quick note — lower cost</option>
+            <option value="quick">Voice memo / quick note</option>
           </select>
         </div>
-        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">{{ modeHelp }}</div>
+        <div style="font-size:12.5px; color:#77777d; line-height:1.55; margin-top:9px; padding:0 4px;">{{ modeHelp }}</div>
+        <div style="background:#171719; border-left:3px solid #D97757; border-radius:9px; padding:9px 11px; margin-top:10px; font-size:12.5px; color:#a0a0a6; line-height:1.5;"><span style="color:#E8896A; font-weight:700;">Easy example:</span> {{ modeExample }}</div>
 
         <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Summary quality</div>
         <div style="background:#1A1A1C; border-radius:16px; padding:10px 12px;">
           <select value="{{ summaryQuality }}" onChange="{{ setSummaryQuality }}" style="width:100%; background:#242426; border:1px solid #343438; border-radius:12px; outline:none; color:#fff; font-size:15px; font-family:inherit; padding:13px 12px;">
-            <option value="standard">Standard — fast &amp; economical</option>
+            <option value="standard">Standard — GPT-5.4 nano</option>
             <option value="executive">Executive — GPT-5.6 Sol</option>
           </select>
         </div>
-        <div style="font-size:12.5px; color:#6a6a70; line-height:1.55; margin-top:9px; padding:0 4px;">{{ summaryHelp }}</div>
+        <div style="font-size:12.5px; color:#77777d; line-height:1.55; margin-top:9px; padding:0 4px;">{{ summaryHelp }}</div>
+        <div style="background:#171719; border-left:3px solid #D97757; border-radius:9px; padding:9px 11px; margin-top:10px; font-size:12.5px; color:#a0a0a6; line-height:1.5;"><span style="color:#E8896A; font-weight:700;">Easy example:</span> {{ summaryExample }}</div>
+
+        <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:24px 4px 8px;">Which model should I use?</div>
+        <div style="background:#141416; border:1px solid #252528; border-radius:16px; overflow:hidden;">
+          <div style="padding:13px 14px; background:#1A1A1C; font-size:12.5px; color:#b0b0b6; line-height:1.5;">
+            <span style="color:#fff; font-weight:700;">Quick rule:</span> 1 main speaker → Voice memo. 2+ speakers → Meeting. Routine notes → Standard. Important or complex work → Executive.
+          </div>
+
+          <div style="padding:14px; border-top:1px solid #29292c;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div style="font-size:13px; color:#fff; font-weight:700; word-break:break-word;">gpt-transcribe</div>
+              <span style="background:#2A211D; color:#E8896A; border-radius:999px; padding:3px 7px; font-size:10.5px; font-weight:700; white-space:nowrap;">VOICE MEMO</span>
+            </div>
+            <div style="font-size:12.5px; color:#909096; line-height:1.5; margin-top:7px;"><span style="color:#c8c8cc; font-weight:650;">Use when:</span> one person speaks, or you need accurate words without speaker labels.</div>
+            <div style="font-size:12.5px; color:#77777d; line-height:1.5; margin-top:4px;"><span style="color:#a6a6ac;">Examples:</span> Apple Voice Memo, trading journal, personal reflection, dictated task list, or thoughts after a client call.</div>
+          </div>
+
+          <div style="padding:14px; border-top:1px solid #29292c;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div style="font-size:13px; color:#fff; font-weight:700; word-break:break-word;">gpt-4o-transcribe-diarize</div>
+              <span style="background:#1C2922; color:#74D99A; border-radius:999px; padding:3px 7px; font-size:10.5px; font-weight:700; white-space:nowrap;">MEETING</span>
+            </div>
+            <div style="font-size:12.5px; color:#909096; line-height:1.5; margin-top:7px;"><span style="color:#c8c8cc; font-weight:650;">Use when:</span> two or more people speak and you need to know who spoke when.</div>
+            <div style="font-size:12.5px; color:#77777d; line-height:1.5; margin-top:4px;"><span style="color:#a6a6ac;">Examples:</span> client call, team meeting, interview, negotiation, or panel discussion. It labels Speaker A/B; it does not recognise people by voice.</div>
+          </div>
+
+          <div style="padding:14px; border-top:1px solid #29292c;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div style="font-size:13px; color:#fff; font-weight:700;">gpt-5.4-nano</div>
+              <span style="background:#202438; color:#9BAAF7; border-radius:999px; padding:3px 7px; font-size:10.5px; font-weight:700; white-space:nowrap;">STANDARD</span>
+            </div>
+            <div style="font-size:12.5px; color:#909096; line-height:1.5; margin-top:7px;"><span style="color:#c8c8cc; font-weight:650;">Use when:</span> the memo is routine and speed plus low cost matter most.</div>
+            <div style="font-size:12.5px; color:#77777d; line-height:1.5; margin-top:4px;"><span style="color:#a6a6ac;">Examples:</span> daily voice journal, routine team update, basic meeting recap, or simple action list.</div>
+          </div>
+
+          <div style="padding:14px; border-top:1px solid #29292c;">
+            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+              <div style="font-size:13px; color:#fff; font-weight:700;">gpt-5.6-sol</div>
+              <span style="background:#30231C; color:#F0A071; border-radius:999px; padding:3px 7px; font-size:10.5px; font-weight:700; white-space:nowrap;">EXECUTIVE</span>
+            </div>
+            <div style="font-size:12.5px; color:#909096; line-height:1.5; margin-top:7px;"><span style="color:#c8c8cc; font-weight:650;">Use when:</span> the discussion is important or complex and nuance, reasoning, and risk matter more than cost.</div>
+            <div style="font-size:12.5px; color:#77777d; line-height:1.5; margin-top:4px;"><span style="color:#a6a6ac;">Examples:</span> credit committee, client negotiation, board or strategy meeting, or detailed risk review.</div>
+          </div>
+        </div>
 
         <div style="font-size:12.5px; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; color:#6a6a70; margin:22px 4px 8px;">Attendees &amp; vocabulary</div>
         <div style="background:#1A1A1C; border-radius:16px; padding:14px 16px;">
@@ -707,15 +756,24 @@ class Component extends DCLogic {
       transcribeMode: s.transcribeMode, setTranscribeMode: (e) => this.setTranscribeMode(e),
       homeModeTag: s.transcribeMode === 'quick' ? 'Best for Voice Memos' : 'Speaker labels',
       homeModeHelp: s.transcribeMode === 'quick'
-        ? 'Recommended for a personal Voice Memo; highest transcription accuracy with your vocabulary hints.'
-        : 'Use for conversations with multiple people; labels each speaker but does not guess their identity.',
+        ? 'Best when one main person speaks and you do not need speaker labels.'
+        : 'Best for two or more speakers when you need to know who spoke when.',
+      homeModeExample: s.transcribeMode === 'quick'
+        ? 'Your own Apple Voice Memo, trading journal, personal reflection, or dictated task list.'
+        : 'A client call, team meeting, interview, negotiation, or panel discussion.',
       modeHelp: s.transcribeMode === 'quick'
-        ? 'Uses the recommended gpt-transcribe model at $0.0045 per audio minute. It supports language and vocabulary hints, but no speaker labels.'
+        ? 'Uses gpt-transcribe at $0.0045 per audio minute. It supports language and vocabulary hints, but no speaker labels.'
         : 'Uses gpt-4o-transcribe-diarize. It labels speakers and timestamps each segment; names are used only when the recording explicitly identifies them.',
+      modeExample: s.transcribeMode === 'quick'
+        ? 'Choose this for a personal Voice Memo—even if you mention other people in it.'
+        : 'Choose this for a client call; the transcript will show Speaker A, Speaker B, and so on.',
       summaryQuality: s.summaryQuality, setSummaryQuality: (e) => this.setSummaryQuality(e),
       summaryHelp: s.summaryQuality === 'executive'
-        ? 'Uses GPT-5.6 Sol for the strongest analysis. It costs $5 input / $30 output per 1M text tokens, so use it for important meetings.'
+        ? 'Uses GPT-5.6 Sol for the strongest analysis. It costs $5 input / $30 output per 1M text tokens, so use it when nuance and reasoning matter.'
         : 'Recommended default. GPT-5.4 nano is fast and economical at $0.20 input / $1.25 output per 1M text tokens.',
+      summaryExample: s.summaryQuality === 'executive'
+        ? 'Credit committee, client negotiation, strategy meeting, or detailed risk review.'
+        : 'Daily journal, routine team update, basic meeting recap, or simple action list.',
       vocabHelp: s.transcribeMode === 'quick'
         ? 'Improves names, companies, product terms, and acronyms. Example: "Jayson, HSBC, Midea, H2H, CARM".'
         : 'Used as spelling context for the memo, not as proof that a particular speaker is that person.',
