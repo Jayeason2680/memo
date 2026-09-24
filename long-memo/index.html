@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f7f5f1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Memo Studio">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Memo Studio</title>
+  <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/assets/manifest.webmanifest">
+  <link rel="stylesheet" href="/assets/studio.css">
+  <script src="/assets/studio.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header><a class="brand" href="/" aria-label="Memo Studio home"><img src="/assets/icon.svg" width="34" height="34" alt="">Memo <span>Studio</span></a><span class="beta">PRIVATE BETA</span></header>
+    <div id="connection" class="notice" role="status" hidden></div>
+    <main id="app"><p class="loading" role="status">Opening your studio…</p></main>
+    <footer><span>Made for the full conversation.</span><details><summary>Privacy & storage</summary><p>Audio and transcripts are sent to OpenAI. Recordings and reports are kept on protected service storage until you delete them. Host backups and API monitoring may retain content temporarily. Use personal or approved recordings.</p></details></footer>
+  </div>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

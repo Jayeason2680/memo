@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: jayson-memo-studio-beta
+    runtime: docker
+    repo: https://github.com/Jayeason2680/memo
+    branch: feature/iphone-long-memo-studio
+    region: singapore
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: "off"
+    dockerfilePath: ./long-memo/Dockerfile
+    dockerContext: ./long-memo
+    healthCheckPath: /health
+    disk:
+      name: memo-recordings
+      mountPath: /data
+      sizeGB: 10
+    envVars:
+      - key: MEMO_DATA_DIR
+        value: /data
+      - key: MEMO_REPORT_MODEL
+        value: gpt-6-sol
+      - key: MEMO_SESSION_SECRET
+        generateValue: true
+      - key: MEMO_PASSWORD
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
