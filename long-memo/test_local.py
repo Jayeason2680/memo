@@ -117,6 +117,110 @@ class MemoBetaChecks(unittest.TestCase):
         self.assertEqual(pipeline.named_report(job)["brief_en"], "Jayson agreed.")
         self.assertEqual(job["report"]["brief_en"], "Part 1 · speaker_0 agreed.")
 
+    def test_translation_resumes_without_repeating_saved_sections(self):
+        job_id = "d" * 32
+        pipeline.folder(job_id).mkdir(exist_ok=True)
+        # More than one request, containing a number, negation and both languages.
+        originals = [("Budget is RM50,000; not approved. 还没批准。 " * 65) for _ in range(6)]
+        job = {"id": job_id, "title": "Translation recovery", "transcribed": [{"segments": [
+            {"start": i*60, "end": (i+1)*60, "speaker": "A", "text": text} for i, text in enumerate(originals)]}]}
+        pipeline.save_job(job)
+        groups = pipeline.translation_groups(pipeline.transcript_rows(job))
+        calls = []
+        def response(prompt, schema):
+            import json
+            rows = json.loads(prompt.split("\n\n", 1)[1])
+            calls.append([row["id"] for row in rows])
+            if len(calls) == 2:
+                raise RuntimeError("network interrupted")
+            return {"rows": [{"id": row["id"], "en": row["original"], "zh": row["original"]} for row in rows]}
+        with patch.object(pipeline, "_json_response", side_effect=response):
+            with self.assertRaisesRegex(RuntimeError, "interrupted"):
+                pipeline.translate_transcript(job_id)
+        self.assertEqual(len(pipeline.read_job(job_id)["translation_batches"]), 1)
+        with patch.object(pipeline, "_json_response", side_effect=response):
+            completed = pipeline.translate_transcript(job_id)
+        self.assertEqual(calls.count([row["id"] for row in groups[0]]), 1)
+        self.assertEqual(len(completed["translation_batches"]), len(groups))
+        self.assertEqual(completed["transcribed"], job["transcribed"])
+        self.assertEqual("".join(row["original"] for row in pipeline.transcript_rows(completed)), "".join(originals))
+        self.assertTrue(all(row["en"] and row["zh"] for row in pipeline.transcript_rows(completed)))
+
+    def test_incomplete_translation_does_not_advance_checkpoint(self):
+        job_id = "e" * 32
+        pipeline.folder(job_id).mkdir(exist_ok=True)
+        job = {"id": job_id, "title": "Missing translation", "transcribed": [{"segments": [
+            {"start": 0, "end": 1, "speaker": "A", "text": "Not agreed. 未达成共识。"}]}]}
+        pipeline.save_job(job)
+        for answer in ({"rows": []}, {"rows": [{"id": "wrong-id", "en": "test", "zh": "测试"}]},
+                       {"rows": [{"id": "0-0-0", "en": "", "zh": "测试"}]}):
+            with patch.object(pipeline, "_json_response", return_value=answer):
+                with self.assertRaisesRegex(ValueError, "incomplete"):
+                    pipeline.translate_transcript(job_id)
+            self.assertFalse(pipeline.read_job(job_id).get("translation_batches"))
+
+    def test_bilingual_exports_and_nested_speaker_names(self):
+        from docx import Document
+        job_id = "f" * 32
+        pipeline.folder(job_id).mkdir(exist_ok=True)
+        job = {"id": job_id, "title": "Family discussion", "filename": "family.m4a", "size": 8, "offset": 8,
+               "status": "ready", "created": 1, "speaker_names": {"A": "Jayson"},
+               "transcribed": [{"segments": [{"start": 10, "end": 20, "speaker": "A", "text": "We have not agreed. 还没决定。"}]}],
+               "translation_batches": [[{"id": "0-0-0", "en": "We have not agreed. We have not decided.", "zh": "我们还未达成共识，也还没决定。"}]],
+               "report": {"brief_en": "Not decided.", "brief_zh": "还没决定。", "comprehensive_en": "Discussion.", "comprehensive_zh": "讨论。",
+                          "highlights_en": {"actions": [{"task": "Review options", "owner": "A", "deadline": ""}], "decisions": [], "questions": []}}}
+        pipeline.save_job(job)
+        pipeline.write_exports(job)
+        self.assertEqual(pipeline.named_report(job)["highlights_en"]["actions"][0]["owner"], "Jayson")
+        exported = (pipeline.folder(job_id) / "bilingual-transcript.txt").read_text()
+        self.assertIn("[00:00:10–00:00:20] Jayson", exported)
+        self.assertIn("Original: We have not agreed. 还没决定。", exported)
+        with zipfile.ZipFile(pipeline.folder(job_id) / "memo-downloads.zip") as bundle:
+            self.assertIn("bilingual-transcript.docx", bundle.namelist())
+        doc = Document(pipeline.folder(job_id) / "brief.docx")
+        self.assertEqual(doc.tables[0].rows[1].cells[1].text, "Jayson")
+        self.assertEqual(doc.tables[0].rows[1].cells[2].text, "Not stated")
+        response = self.client.get(f"/api/jobs/{job_id}/downloads/bilingual-transcript.docx")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Family", response.headers["content-disposition"])
+        self.assertEqual(response.headers["cache-control"], "no-store")
+
+    def test_private_endpoints_assets_and_legacy_translation_download(self):
+        anonymous = TestClient(service.app, base_url="https://testserver")
+        self.assertEqual(anonymous.get("/api/jobs").status_code, 401)
+        for name in ("studio.css", "studio.js", "icon.svg", "manifest.webmanifest"):
+            self.assertEqual(anonymous.get("/assets/" + name).status_code, 200)
+        self.assertEqual(anonymous.get("/assets/app.py").status_code, 404)
+        created = self.client.post("/api/jobs", json={"title": "Legacy", "filename": "x.m4a", "size": 1, "mode": "meeting"}, headers=self.headers).json()
+        pipeline.update(created["id"], status="ready")
+        self.assertEqual(self.client.get(f"/api/jobs/{created['id']}/downloads/bilingual-transcript.txt").status_code, 404)
+        self.assertEqual(self.client.post("/api/logout", headers=self.headers).status_code, 200)
+        self.assertEqual(self.client.get("/api/jobs").status_code, 401)
+        anonymous.close()
+
+    def test_speaker_rename_does_not_replace_words_or_cascade(self):
+        self.assertEqual(pipeline._replace_speakers("A agreed. Approved by B.", {"A": "B", "B": "Mei"}), "B agreed. Approved by Mei.")
+        self.assertEqual(pipeline._replace_speakers("Part 1 · speaker_01", {"Part 1 · speaker_0": "Jayson"}), "Part 1 · speaker_01")
+
+    def test_process_can_finish_after_translation_interruption(self):
+        job_id = "1234" * 8
+        path = pipeline.folder(job_id)
+        path.mkdir(exist_ok=True)
+        job = {"id": job_id, "title": "Resume", "include_translation": True, "transcribed": [{"segments": [
+            {"start": 0, "end": 10, "speaker": "A", "text": "No booking. 不要预订。"}]}]}
+        pipeline.save_job(job)
+        parts = [{"index": 0, "start": 0, "seconds": 10}]
+        report = {key: "Report" for key in ("title_en", "title_zh", "brief_en", "brief_zh", "comprehensive_en", "comprehensive_zh")}
+        with patch.object(pipeline, "split_audio", return_value=parts), patch.object(pipeline, "transcribe_part", side_effect=AssertionError("Already transcribed")), patch.object(pipeline, "_json_response", side_effect=RuntimeError("Translation interrupted")):
+            pipeline.process(job_id)
+        self.assertEqual(pipeline.read_job(job_id)["status"], "failed")
+        with patch.object(pipeline, "split_audio", return_value=parts), patch.object(pipeline, "transcribe_part", side_effect=AssertionError("Already transcribed")), patch.object(pipeline, "_json_response", return_value={"rows": [{"id": "0-0-0", "en": "No booking. Do not book.", "zh": "不要预订。"}]}), patch.object(pipeline, "make_report", return_value=report):
+            pipeline.process(job_id)
+        finished = pipeline.read_job(job_id)
+        self.assertEqual(finished["status"], "ready")
+        self.assertEqual(finished["transcribed"], job["transcribed"])
+        self.assertTrue((path / "bilingual-transcript.docx").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

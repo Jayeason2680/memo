@@ -1,12 +1,25 @@
 # Memo Studio: long-recording beta
 
-This is a separate, single-user beta for the existing [Memo app](https://jayeason2680.github.io/memo/). It does not change the GitHub Pages site. The phone uploads a recording in 4 MB pieces; the service keeps processing after Safari closes. Return to the same service URL to view progress, review speaker names, and download:
+This is a separate, single-user beta for the existing [Memo app](https://jayeason2680.github.io/memo/). It does not change the GitHub Pages site. The phone uploads a recording in 4 MB pieces; the service keeps processing after Safari closes. Return to the same service URL to read a plain-language summary, review the full report or compare the original transcript with English and Simplified Chinese translations. New recordings include these downloads:
 
 1. Full timestamped transcript (`.txt`)
 2. Comprehensive English and Chinese report (`.docx`)
-3. Brief 3–4 paragraph summary in each language (`.docx`)
+3. Brief 3–4 paragraph summary in each language, with confirmed decisions, actions and open questions (`.docx`)
+4. Original + English + Chinese transcript (`.docx` and `.txt`)
 
-A ZIP containing all three is also available.
+A ZIP containing all five files is also available. Earlier recordings without translations keep their original downloads. Translations are generated from the transcript; they do not independently verify the audio.
+
+## iPhone workflow
+
+1. In Apple Voice Memos, choose the recording → Share → Save to Files.
+2. Open Memo Studio and import that file. Conversation mode is selected by default; use My own thoughts for one main speaker. Filename supplies the title. Title, context and speaker clips are optional.
+3. Keep Safari open until the app confirms upload completion. Pause and resume are available; after returning, reselect the same file. The app compares filename, size and a SHA-256 signature of the first/last 64 KB, not a hash of the entire recording. It requests a screen wake lock where supported, but cannot guarantee iOS background uploading.
+4. Once upload completes, processing continues on the service. Translation sections are saved individually, and retries reuse completed transcription and translation sections.
+5. Read Summary, Full report or Transcript; switch English/中文, or use Compare to see source and translations together. Save a Word document or all files.
+
+The interface follows the device light/dark preference, uses 16 px form inputs, supports keyboard tab navigation, and limits the transcript display to 30 sections at a time. Add to Home Screen metadata is included; native iPhone installation and document handling still require device acceptance.
+
+Speaker review remains after report generation. Renaming changes labels without regenerating the analysis. Unconfirmed speaker identities must remain unassigned. No new speaker-review gate has been introduced.
 
 ## Before deployment
 
@@ -35,7 +48,9 @@ The report request explicitly sets OpenAI Responses `store: false` to avoid its 
 - Supports M4A, MP3, MP4, MPEG/MPGA, WAV, and WebM up to 1 GB and 24 hours. FFmpeg prepares consecutive AAC parts near 10 minutes, choosing a nearby quiet interval when available. Each part stays below the OpenAI 25 MB file limit. Ten minutes is a conservative engineering choice, not a stated OpenAI time limit.
 - Personal mode uses `gpt-transcribe` with English, Mandarin, and Cantonese hints. Its timestamp marks each part, not each sentence.
 - Meeting mode uses `gpt-4o-transcribe-diarize` for segment timestamps and speaker labels. Up to four optional 2–10 second voice references can link known speakers across parts. Without references, labels remain part-specific until you review and rename them. A typed name alone is never treated as proof of identity.
-- Reports are generated from the entire transcript, using section notes for recordings too long for one report request. Confirm critical names, numbers, commitments, and speaker assignments against the audio.
+- Reports are generated from the entire transcript, using section notes for recordings too long for one report request. The prompt asks for everyday English, natural Simplified Chinese, context and reasons, and clear separation of proposals from confirmed decisions. Empty categories are omitted. Missing action owners and dates are explicitly shown as unstated. Confirm critical names, numbers, commitments, and speaker assignments against the audio.
+- Full transcript translation uses the report model, preserving the original and matching source section IDs. Batches are bounded by character count and row count; missing, duplicate or out-of-order IDs are rejected before saving. This structural check cannot prove translation accuracy. Translation adds API charges and processing time.
+- Long source segments are split for readable translation without inventing finer timestamps. Each resulting piece retains the original section time range.
 - `gpt-4o-transcribe-diarize` has a published shutdown date of 26 February 2027. Replace that adapter before the date; keep the rest of the upload/export workflow.
 
 ## Local development
@@ -43,6 +58,8 @@ The report request explicitly sets OpenAI Responses `store: false` to avoid its 
 Install Python 3.12 dependencies from `requirements.txt`, install FFmpeg and FFprobe, set the three required environment variables, then run `uvicorn app:app --host 127.0.0.1 --port 8000` from this folder. A secure session cookie requires HTTPS; for local phone testing, use an HTTPS development proxy. API billing starts only when a finished job calls OpenAI.
 
 ## Current acceptance boundary
+
+Twelve offline tests cover resumable upload, authentication, request formatting, source preservation, translation completeness checks and recovery, speaker label replacement, and document/archive exports. The local browser review covered English and Chinese screens, light/dark appearance, phone widths, keyboard navigation, and a throttled 12 MB pause/resume upload with a changed-file rejection. A labelled sample supplied the report content; it is not live model-quality evidence.
 
 The code can be reviewed and tested locally without an API key. End-to-end transcription, report quality, iPhone Safari upload behavior, and background survival on a chosen host require a configured service and a real recording. Do not treat a code check or simulated API response as that acceptance test.
 

@@ -18,7 +18,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from pipeline import DATA, folder, named_report, process, read_job, save_job, update, write_exports
+from pipeline import DATA, folder, named_report, process, read_job, save_job, update, write_exports, transcript_rows
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 pool = ThreadPoolExecutor(max_workers=1)
@@ -28,7 +28,16 @@ login_failures: dict[str, list[float]] = {}
 CHUNK_LIMIT = 4 * 1024 * 1024
 MAX_FILE = 1024 * 1024 * 1024
 VALID_EXT = {".m4a", ".mp3", ".mp4", ".mpeg", ".mpga", ".wav", ".webm"}
-DOWNLOADS = {"transcript.txt", "comprehensive.docx", "brief.docx", "memo-downloads.zip"}
+DOWNLOADS = {"transcript.txt", "comprehensive.docx", "brief.docx", "memo-downloads.zip", "bilingual-transcript.txt", "bilingual-transcript.docx"}
+
+
+@app.middleware("http")
+async def private_responses(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "same-origin"
+    return response
 
 
 def config() -> tuple[str, str]:
@@ -64,12 +73,14 @@ def session(request: Request, *, mutation=False) -> str:
 
 
 def public(job: dict, *, include_report=True) -> dict:
-    keys = ("id", "title", "filename", "size", "offset", "mode", "status", "error", "duration_seconds", "total_parts", "current_part", "speaker_names", "report", "created")
+    keys = ("id", "title", "filename", "size", "offset", "mode", "status", "error", "duration_seconds", "total_parts", "current_part", "speaker_names", "report", "created", "fingerprint", "translation_part", "translation_total", "include_translation")
     result = {key: job.get(key) for key in keys}
     if not include_report:
         result.pop("report", None)
     else:
         result["report"] = named_report(job)
+        result["transcript"] = transcript_rows(job)
+        result["has_translation"] = bool(job.get("translation_batches"))
     speakers = {segment["speaker"] for part in job.get("transcribed", []) for segment in part["segments"]}
     result["speakers"] = sorted(speakers)
     return result
@@ -95,7 +106,7 @@ def startup() -> None:
     for path in DATA.glob("*/job.json"):
         try:
             job = read_job(path.parent.name)
-            if job["status"] in ("queued", "preparing", "transcribing", "writing"):
+            if job["status"] in ("queued", "preparing", "transcribing", "translating", "writing"):
                 dispatch(job["id"])
         except (ValueError, KeyError, OSError):
             continue
@@ -104,6 +115,13 @@ def startup() -> None:
 @app.get("/", response_class=HTMLResponse)
 def home() -> str:
     return (Path(__file__).parent / "index.html").read_text()
+
+
+@app.get("/assets/{name}")
+def assets(name: str):
+    if name not in ("studio.css", "studio.js", "icon.svg", "manifest.webmanifest"):
+        raise HTTPException(404, "File not found")
+    return FileResponse(Path(__file__).parent / name)
 
 
 @app.get("/health")
@@ -141,12 +159,21 @@ def get_session(request: Request):
     return {"csrf": signature("csrf." + session(request))}
 
 
+@app.post("/api/logout")
+def logout(request: Request, response: Response):
+    session(request, mutation=True)
+    response.delete_cookie("memo_session")
+    return {"signed_out": True}
+
+
 class NewJob(BaseModel):
     title: str = Field(min_length=1, max_length=120)
     filename: str = Field(min_length=1, max_length=255)
     size: int = Field(gt=0, le=MAX_FILE)
     mode: str
     terms: str = Field(default="", max_length=500)
+    fingerprint: str = Field(default="", pattern=r"^([a-f0-9]{64})?$")
+    include_translation: bool = True
 
 
 @app.post("/api/jobs")
@@ -160,7 +187,9 @@ def new_job(body: NewJob, request: Request):
     job = {"id": job_id, "title": body.title.strip(), "filename": Path(body.filename).name,
            "size": body.size, "offset": 0, "mode": body.mode, "terms": body.terms.strip(),
            "created": int(time.time()), "status": "uploading", "error": None,
-           "transcribed": [], "speaker_names": {}, "speaker_refs": []}
+           "transcribed": [], "speaker_names": {}, "speaker_refs": [],
+           "fingerprint": body.fingerprint, "include_translation": body.include_translation,
+           "translation_batches": []}
     save_job(job)
     return public(job)
 
@@ -300,7 +329,11 @@ def download(job_id: str, name: str, request: Request):
     job = read_job(job_id)
     if job["status"] != "ready":
         raise HTTPException(409, "Downloads are not ready")
-    return FileResponse(folder(job_id) / name, filename=name)
+    path = folder(job_id) / name
+    if not path.is_file():
+        raise HTTPException(404, "This download is not available for this recording")
+    title = re.sub(r'[^\w\s-]', '', job["title"]).strip()[:60] or "Memo"
+    return FileResponse(path, filename=title + " - " + name)
 
 
 @app.delete("/api/jobs/{job_id}")
