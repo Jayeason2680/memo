@@ -106,6 +106,13 @@ def home() -> str:
     return (Path(__file__).parent / "index.html").read_text()
 
 
+@app.get("/health")
+def health():
+    if not DATA.is_dir() or not os.access(DATA, os.W_OK):
+        raise HTTPException(503, "Recording storage is unavailable")
+    return {"status": "ok"}
+
+
 class Login(BaseModel):
     password: str
 

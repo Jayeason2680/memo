@@ -25,6 +25,7 @@ class MemoBetaChecks(unittest.TestCase):
         login = self.client.post("/api/login", json={"password": os.environ["MEMO_PASSWORD"]})
         self.assertEqual(login.status_code, 200)
         self.headers = {"X-Memo-CSRF": login.json()["csrf"]}
+        self.assertEqual(self.client.get("/health").status_code, 200)
 
     def tearDown(self):
         self.client.close()
@@ -101,6 +102,14 @@ class MemoBetaChecks(unittest.TestCase):
         with patch.object(pipeline, "_post", side_effect=inspect_request):
             result = pipeline.transcribe_part({"id": job_id, "mode": "personal", "terms": ""}, {"file": "part-0000.m4a", "index": 0, "start": 0, "seconds": 10})
         self.assertEqual(result["segments"][0]["text"], "Hello, 你好。")
+
+    def test_reports_disable_openai_application_state(self):
+        def inspect_request(_path, **kwargs):
+            self.assertIs(kwargs["payload"]["store"], False)
+            return {"status": "completed", "output": [{"content": [{"type": "output_text", "text": '{"notes":"ok"}'}]}]}
+        schema = {"type": "object", "properties": {"notes": {"type": "string"}}, "required": ["notes"], "additionalProperties": False}
+        with patch.object(pipeline, "_post", side_effect=inspect_request):
+            self.assertEqual(pipeline._json_response("sample", schema), {"notes": "ok"})
 
     def test_reviewed_speaker_names_appear_in_report(self):
         job = {"report": {"brief_en": "Part 1 · speaker_0 agreed."},
