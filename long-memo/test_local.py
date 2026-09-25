@@ -1,5 +1,6 @@
 """Offline checks. No OpenAI key or network call is used."""
 import os
+import hashlib
 import tempfile
 import unittest
 import zipfile
@@ -20,6 +21,48 @@ import pipeline
 
 
 class MemoBetaChecks(unittest.TestCase):
+    def create_upload(self, size):
+        response = self.client.post("/api/jobs", json={"title": "Upload audit", "filename": "audit.m4a", "size": size, "mode": "meeting"}, headers=self.headers)
+        self.assertEqual(response.status_code, 200)
+        return response.json()["id"]
+
+    def test_210_mib_upload_preserves_every_byte(self):
+        total = 210 * 1024 * 1024
+        job_id = self.create_upload(total)
+        expected = hashlib.sha256()
+        offset = 0
+        while offset < total:
+            payload = bytes([(offset // service.CHUNK_LIMIT) % 251]) * min(service.CHUNK_LIMIT, total - offset)
+            expected.update(payload)
+            response = self.client.put(f"/api/jobs/{job_id}/upload", content=payload,
+                                       headers={**self.headers, "X-Upload-Offset": str(offset)})
+            self.assertEqual(response.status_code, 200)
+            offset += len(payload)
+            self.assertEqual(response.json()["offset"], offset)
+        with (pipeline.folder(job_id) / "original").open("rb") as stream:
+            self.assertEqual(hashlib.file_digest(stream, "sha256").hexdigest(), expected.hexdigest())
+        with patch.object(service, "dispatch") as dispatch:
+            self.assertEqual(self.client.post(f"/api/jobs/{job_id}/finish", headers=self.headers).status_code, 200)
+            dispatch.assert_called_once_with(job_id)
+
+    def test_resume_rejects_missing_bytes_and_recovers_unacknowledged_tail(self):
+        job_id = self.create_upload(8)
+        url = f"/api/jobs/{job_id}/upload"
+        headers = {**self.headers, "X-Upload-Offset": "0"}
+        self.assertEqual(self.client.put(url, content=b"abcd", headers=headers).status_code, 200)
+        original = pipeline.folder(job_id) / "original"
+        original.write_bytes(b"ab")
+        headers["X-Upload-Offset"] = "4"
+        self.assertEqual(self.client.put(url, content=b"efgh", headers=headers).status_code, 409)
+        self.assertEqual(original.read_bytes(), b"ab")
+        original.write_bytes(b"abcdSTALE")
+        self.assertEqual(self.client.put(url, content=b"efgh", headers=headers).status_code, 200)
+        self.assertEqual(original.read_bytes(), b"abcdefgh")
+        original.write_bytes(b"abc")
+        with patch.object(service, "dispatch") as dispatch:
+            self.assertEqual(self.client.post(f"/api/jobs/{job_id}/finish", headers=self.headers).status_code, 409)
+            dispatch.assert_not_called()
+
     def setUp(self):
         self.client = TestClient(service.app, base_url="https://testserver")
         login = self.client.post("/api/login", json={"password": os.environ["MEMO_PASSWORD"]})
