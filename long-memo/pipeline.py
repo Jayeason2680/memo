@@ -40,8 +40,18 @@ def save_job(job: dict) -> None:
     path = folder(job["id"]) / "job.json"
     temp = path.with_suffix(".tmp")
     with _lock:
-        temp.write_text(json.dumps(job, ensure_ascii=False, indent=2))
+        with temp.open("w", encoding="utf-8") as stream:
+            stream.write(json.dumps(job, ensure_ascii=False, indent=2))
+            stream.flush()
+            os.fsync(stream.fileno())
         temp.replace(path)
+        # Persist the rename as well as the contents before acknowledging progress.
+        if os.name == "posix":
+            directory = os.open(path.parent, os.O_RDONLY)
+            try:
+                os.fsync(directory)
+            finally:
+                os.close(directory)
 
 
 def update(job_id: str, **values) -> dict:

@@ -234,8 +234,11 @@ async def upload(job_id: str, request: Request):
             if not payload or offset + len(payload) > job["size"]:
                 raise HTTPException(400, "Invalid upload chunk")
             original = folder(job_id) / "original"
+            stored_size = original.stat().st_size if original.exists() else 0
+            if stored_size < offset:
+                raise HTTPException(409, "Stored audio is incomplete. Import the recording again.")
             # A crash after writing bytes but before saving the offset is recoverable.
-            if original.exists() and original.stat().st_size != offset:
+            if stored_size > offset:
                 with original.open("r+b") as stream:
                     stream.truncate(offset)
             with original.open("ab") as stream:
@@ -253,10 +256,13 @@ async def upload(job_id: str, request: Request):
 def finish(job_id: str, request: Request):
     session(request, mutation=True)
     try:
-        job = read_job(job_id)
-        if job["status"] != "uploading" or job["offset"] != job["size"]:
-            raise HTTPException(409, "Upload is incomplete")
-        update(job_id, status="queued")
+        with running_lock:
+            job = read_job(job_id)
+            original = folder(job_id) / "original"
+            if (job["status"] != "uploading" or job["offset"] != job["size"]
+                    or not original.is_file() or original.stat().st_size != job["size"]):
+                raise HTTPException(409, "Upload is incomplete")
+            update(job_id, status="queued")
         dispatch(job_id)
         return {"status": "queued"}
     except (ValueError, FileNotFoundError):

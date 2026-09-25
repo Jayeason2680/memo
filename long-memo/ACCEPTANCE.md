@@ -4,6 +4,8 @@ The draft is ready for code and design review. A hosted release is still pending
 
 ## Verified locally
 
+- Follow-up integrity audit: 14 offline tests pass, including a 210 MiB synthetic upload in 4 MiB requests, with SHA-256 comparison of the complete stored file. This uses the in-process HTTP test client, not an iPhone, real audio, or a hosted network.
+- Resume rejects storage shorter than its acknowledged offset; extra unacknowledged bytes are safely replaced. Finish verifies the stored file length before queuing. Metadata contents and directory renames are flushed before acknowledging progress.
 - 12 offline tests pass, including translation checkpoint recovery, rejecting incomplete translations, preserving original text, and bilingual exports.
 - Python and JavaScript syntax checks pass.
 - Local browser: sign-in, import selection, language switching, full report, original/translated comparison, and recovery UI.
